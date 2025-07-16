@@ -1,0 +1,275 @@
+// =================================================================
+// Esquema de Prisma Unificado para CapBOX
+// Contiene todos los modelos para los microservicios.
+// =================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------
+// Modelos del Contexto: Identidad y Acceso
+// -----------------------------------------------------
+
+model User {
+  id                      String    @id @db.Char(36)
+  email                   String    @unique
+  password_hash           String?
+  refresh_token_hash      String?   @db.Text
+  name                    String
+  role                    UserRole
+  createdAt               DateTime  @default(now()) @map("created_at")
+
+  // Relaciones
+  ownedGym                Gym?                        @relation("OwnerToGym")
+  gyms                    UserGymRelation[]
+  athleteProfile          Athlete?
+  coachApprovals          AthleteDataCaptureRequest[] @relation("CoachApprovals")
+  athleteRequests         AthleteDataCaptureRequest[] @relation("AthleteRequests")
+  createdGoals            Goal[]
+  assignedPlans           AthleteAssignment[]         @relation("AssignerToAssignment")
+  athleteAssignments      AthleteAssignment[]         @relation("AthleteToAssignment")
+  trainingSessions        TrainingSession[]
+  combatEvents            CombatEvent[]
+  testResults             TestResult[]
+  coachObservations       CoachObservation[]
+
+  @@map("users")
+}
+
+model Gym {
+  id      String @id @db.Char(36)
+  ownerId String @unique @db.Char(36)
+  name    String
+  gymKey  String @unique @map("gym_key")
+
+  owner   User              @relation("OwnerToGym", fields: [ownerId], references: [id])
+  members UserGymRelation[]
+
+  @@map("gyms")
+}
+
+model UserGymRelation {
+  userId String @db.Char(36)
+  gymId  String @db.Char(36)
+  
+  user User @relation(fields: [userId], references: [id])
+  gym  Gym  @relation(fields: [gymId], references: [id])
+
+  @@id([userId, gymId])
+  @@map("user_gym_relations")
+}
+
+model AthleteDataCaptureRequest {
+  id          String   @id @db.Char(36)
+  athleteId   String   @db.Char(36)
+  coachId     String   @db.Char(36)
+  status      String   @default("PENDIENTE")
+  requestedAt DateTime @default(now()) @map("requested_at")
+  
+  athlete User @relation("AthleteRequests", fields: [athleteId], references: [id])
+  coach   User @relation("CoachApprovals", fields: [coachId], references: [id])
+
+  @@map("data_capture_requests")
+}
+
+model Athlete {
+  userId                String  @id @db.Char(36)
+  level                 String?
+  height_cm             Float?
+  weight_kg             Float?
+  stance                String?
+  allergies             String? @db.Text
+  emergency_contact_name String?
+  emergency_contact_phone String?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("athletes")
+}
+
+// -----------------------------------------------------
+// Modelos del Contexto: Planificación
+// -----------------------------------------------------
+
+model Sport {
+  id          Int         @id @default(autoincrement())
+  name        String      @unique
+  description String?     @db.Text
+  
+  routines    Routine[]
+  exercises   Exercise[]
+  
+  @@map("sports")
+}
+
+model Routine {
+  id           String             @id @db.Char(36)
+  coachId      String             @db.Char(36)
+  sportId      Int
+  name         String
+  targetLevel  String             @map("target_level")
+  description  String?            @db.Text
+
+  sport       Sport              @relation(fields: [sportId], references: [id])
+  exercises   RoutineExercise[]
+  assignments AthleteAssignment[]
+
+  @@map("routines")
+}
+
+model Exercise {
+  id          String            @id @db.Char(36)
+  sportId     Int
+  name        String
+  description String?           @db.Text
+  
+  sport       Sport             @relation(fields: [sportId], references: [id])
+  routines    RoutineExercise[]
+
+  @@map("exercises")
+}
+
+model RoutineExercise {
+  routineId   String  @db.Char(36)
+  exerciseId  String  @db.Char(36)
+  orderIndex  Int     @map("order_index")
+  setsReps    String? @map("sets_reps")
+
+  routine  Routine  @relation(fields: [routineId], references: [id])
+  exercise Exercise @relation(fields: [exerciseId], references: [id])
+
+  @@id([routineId, exerciseId, orderIndex])
+  @@map("routine_exercises")
+}
+
+model Goal {
+  id           String              @id @db.Char(36)
+  creatorId    String              @db.Char(36)
+  description  String              @db.Text
+  dueDate      DateTime?           @db.Date @map("due_date")
+
+  creator      User                @relation(fields: [creatorId], references: [id])
+  assignments  AthleteAssignment[]
+
+  @@map("goals")
+}
+
+model AthleteAssignment {
+  id         String   @id @db.Char(36)
+  athleteId  String   @db.Char(36)
+  assignerId String   @db.Char(36)
+  routineId  String?  @db.Char(36)
+  goalId     String?  @db.Char(36)
+  status     String   @default("PENDIENTE")
+  assignedAt DateTime @default(now()) @map("assigned_at")
+  
+  athlete          User              @relation("AthleteToAssignment", fields: [athleteId], references: [id])
+  assigner         User              @relation("AssignerToAssignment", fields: [assignerId], references: [id])
+  routine          Routine?          @relation(fields: [routineId], references: [id])
+  goal             Goal?             @relation(fields: [goalId], references: [id])
+  trainingSessions TrainingSession[]
+
+  @@map("athlete_assignments")
+}
+
+// -----------------------------------------------------
+// Modelos del Contexto: Rendimiento
+// -----------------------------------------------------
+
+model TrainingSession {
+  id                  String             @id @db.Char(36)
+  athleteId           String             @db.Char(36)
+  routineAssignmentId String?            @db.Char(36)
+  startTime           DateTime           @map("start_time")
+  endTime             DateTime?          @map("end_time")
+  rpeScore            Int?               @map("rpe_score")
+
+  athlete             User               @relation(fields: [athleteId], references: [id])
+  assignment          AthleteAssignment? @relation(fields: [routineAssignmentId], references: [id])
+  metrics             PerformanceMetric[]
+  coachObservations   CoachObservation[]
+
+  @@map("training_sessions")
+}
+
+model PerformanceMetric {
+  id          String   @id @db.Char(36)
+  sessionId   String   @db.Char(36)
+  metricType  String   @map("metric_type")
+  value       String
+  unit        String
+  measuredAt  DateTime @default(now()) @map("measured_at")
+
+  session TrainingSession @relation(fields: [sessionId], references: [id])
+
+  @@map("performance_metrics")
+}
+
+model CombatEvent {
+  id          String @id @db.Char(36)
+  athleteId   String @db.Char(36)
+  eventType   String @map("event_type")
+  eventDate   DateTime @db.Date @map("event_date")
+  opponentName String? @map("opponent_name")
+  result      String?
+
+  athlete            User               @relation(fields: [athleteId], references: [id])
+  coachObservations  CoachObservation[]
+
+  @@map("combat_events")
+}
+
+model StandardizedTest {
+  id           String @id @db.Char(36)
+  sportId      Int
+  name         String
+  instructions String? @db.Text
+  metricUnit   String  @map("metric_unit")
+
+  results TestResult[]
+
+  @@map("standardized_tests")
+}
+
+model TestResult {
+  id               String @id @db.Char(36)
+  athleteId        String @db.Char(36)
+  testId           String @db.Char(36)
+  testDate         DateTime @default(now()) @map("test_date")
+  resultValue      String   @map("result_value")
+  normalizedScore  Float?   @map("normalized_score")
+
+  athlete User @relation(fields: [athleteId], references: [id])
+  test    StandardizedTest @relation(fields: [testId], references: [id])
+
+  @@map("test_results")
+}
+
+model CoachObservation {
+  id              String           @id @db.Char(36)
+  coachId         String           @db.Char(36)
+  athleteId       String           @db.Char(36)
+  sessionId       String?          @db.Char(36)
+  combatEventId   String?          @db.Char(36)
+  observationText String           @db.Text @map("observation_text")
+  createdAt       DateTime         @default(now()) @map("created_at")
+
+  coach          User              @relation(fields: [coachId], references: [id])
+  session        TrainingSession?  @relation(fields: [sessionId], references: [id])
+  combatEvent    CombatEvent?      @relation(fields: [combatEventId], references: [id])
+
+  @@map("coach_observations")
+}
+
+// --- Enums ---
+enum UserRole {
+  Atleta
+  Entrenador
+  Admin
+}
