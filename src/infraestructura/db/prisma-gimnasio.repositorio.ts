@@ -50,6 +50,9 @@ export class PrismaGimnasioRepositorio implements IGimnasioRepositorio {
       nombre: usuarioDb.name,
       rol: usuarioDb.role as RolUsuario,
       createdAt: usuarioDb.createdAt,
+      fcmToken: '',
+      perfilAtleta: undefined,
+      gimnasio: undefined
     });
   }
 }

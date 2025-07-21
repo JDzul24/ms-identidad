@@ -8,7 +8,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -21,6 +21,7 @@ model User {
   email                   String    @unique
   password_hash           String?
   refresh_token_hash      String?   @db.Text
+  fcm_token               String?   @db.Text
   name                    String
   role                    UserRole
   createdAt               DateTime  @default(now()) @map("created_at")
@@ -272,4 +273,16 @@ enum UserRole {
   Atleta
   Entrenador
   Admin
+}
+
+model Attendance {
+  id             String   @id @db.Char(36)
+  athleteId      String   @db.Char(36)
+  attendanceDate DateTime @db.Date @map("attendance_date")
+  registeredById String   @db.Char(36)
+
+  // Definimos una clave única compuesta para prevenir que un atleta
+  // tenga dos registros de asistencia para el mismo día.
+  @@unique([athleteId, attendanceDate])
+  @@map("attendances") // Nombre de la tabla en la base de datos
 }

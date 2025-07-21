@@ -1,4 +1,5 @@
-// Esta clase representa un Gimnasio en nuestra lógica de negocio.
+import { randomUUID } from 'crypto';
+
 export class Gimnasio {
   readonly id: string;
   readonly ownerId: string;
@@ -18,19 +19,34 @@ export class Gimnasio {
   }
 
   /**
-   * Método estático para reconstituir una entidad Gimnasio desde los datos
-   * que vienen de la capa de persistencia (base de datos).
+   * Método de fábrica para crear una nueva instancia de Gimnasio.
+   */
+  public static crear(props: {
+    ownerId: string;
+    nombre: string;
+    gymKey: string;
+  }): Gimnasio {
+    return new Gimnasio({
+      id: randomUUID(),
+      ownerId: props.ownerId,
+      nombre: props.nombre,
+      gymKey: props.gymKey,
+    });
+  }
+
+  /**
+   * Método para reconstituir la entidad Gimnasio desde la persistencia.
    */
   public static desdePersistencia(props: {
     id: string;
     ownerId: string;
-    name: string; // El nombre de la columna en la BD es 'name'
+    name: string; // Prisma usa 'name'
     gymKey: string;
   }): Gimnasio {
     return new Gimnasio({
       id: props.id,
       ownerId: props.ownerId,
-      nombre: props.name, // Mapeamos 'name' de la BD a 'nombre' en el dominio
+      nombre: props.name,
       gymKey: props.gymKey,
     });
   }

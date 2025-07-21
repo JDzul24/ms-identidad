@@ -6,9 +6,24 @@ import { PerfilAtletaActualizable } from '../tipos/tipos-dominio';
  * Sirve como un contrato para la capa de infraestructura.
  */
 export interface IUsuarioRepositorio {
+  /**
+   * Busca un usuario por su dirección de correo electrónico única.
+   */
   encontrarPorEmail(email: string): Promise<Usuario | null>;
+
+  /**
+   * Busca un usuario por su identificador único.
+   */
   encontrarPorId(id: string): Promise<Usuario | null>;
+
+  /**
+   * Persiste una nueva entidad `Usuario` en la base de datos.
+   */
   guardar(usuario: Usuario): Promise<Usuario>;
+
+  /**
+   * Actualiza la contraseña hasheada de un usuario existente.
+   */
   actualizarPassword(
     usuarioId: string,
     nuevaPasswordPlano: string,
@@ -16,8 +31,6 @@ export interface IUsuarioRepositorio {
 
   /**
    * Actualiza los datos específicos del perfil de un atleta.
-   * @param atletaId - El ID del usuario atleta a actualizar.
-   * @param datos - Un objeto con los campos del perfil a modificar.
    */
   actualizarPerfilAtleta(
     atletaId: string,
@@ -26,11 +39,16 @@ export interface IUsuarioRepositorio {
 
   /**
    * Actualiza o elimina el hash del refresh token para un usuario.
-   * @param usuarioId El ID del usuario.
-   * @param refreshToken El nuevo refresh token (se hasheará) o null para invalidarlo.
    */
   actualizarRefreshToken(
     usuarioId: string,
     refreshToken: string | null,
   ): Promise<void>;
+
+  /**
+   * Crea una relación entre un usuario y un gimnasio en la tabla de unión.
+   * @param usuarioId El ID del usuario a asociar.
+   * @param gymId El ID del gimnasio al que se asociará.
+   */
+  asociarAGimnasio(usuarioId: string, gymId: string): Promise<void>;
 }

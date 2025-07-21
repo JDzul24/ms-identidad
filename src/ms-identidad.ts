@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { EventEmitter2 } from 'eventemitter2';
 
 // --- Controladores ---
 import { AuthController } from './infraestructura/controladores/auth.controller';
@@ -19,6 +21,9 @@ import { ConsultarSolicitudesService } from './aplicacion/servicios/consultar-so
 import { AprobarAtletaService } from './aplicacion/servicios/aprobar-atleta.service';
 import { ConsultarMiembrosService } from './aplicacion/servicios/consultar-miembros.service';
 
+// --- Manejadores de Eventos ---
+import { ManejadorAtletaAprobado } from './aplicacion/manejadores/manejador-atleta-aprobado';
+
 // --- Estrategias y Guardias ---
 import { LocalStrategy } from './infraestructura/estrategias/local.strategy';
 import { JwtStrategy } from './infraestructura/estrategias/jwt.strategy';
@@ -26,11 +31,13 @@ import { JwtRefreshStrategy } from './infraestructura/estrategias/jwt-refresh.st
 import { JwtAuthGuard } from './infraestructura/guardias/jwt-auth.guard';
 import { JwtRefreshAuthGuard } from './infraestructura/guardias/jwt-refresh-auth.guard';
 
-// --- Infraestructura de Base de Datos ---
+// --- Infraestructura ---
 import { PrismaService } from './infraestructura/db/prisma.service';
 import { PrismaGimnasioRepositorio } from './infraestructura/db/prisma-gimnasio.repositorio';
 import { PrismaUsuarioRepositorio } from './infraestructura/db/prisma-usuario.repositorio';
 import { PrismaSolicitudRepositorio } from './infraestructura/db/prisma-solicitud.repositorio';
+import { NotificacionesPushService } from './infraestructura/notificaciones/notificaciones-push.service';
+import { NestjsEventEmitter } from './infraestructura/eventos/nestjs-event-emitter';
 
 @Module({
   imports: [
@@ -46,6 +53,8 @@ import { PrismaSolicitudRepositorio } from './infraestructura/db/prisma-solicitu
         },
       }),
     }),
+    // Se inicializa el módulo de eventos para toda la aplicación.
+    EventEmitterModule.forRoot(),
   ],
   controllers: [
     AuthController,
@@ -64,15 +73,23 @@ import { PrismaSolicitudRepositorio } from './infraestructura/db/prisma-solicitu
     AprobarAtletaService,
     ConsultarMiembrosService,
 
-    // Estrategias y Guardias (ahora locales y correctamente provistas)
+    // Manejadores de Eventos
+    ManejadorAtletaAprobado,
+
+    // Estrategias y Guardias
     LocalStrategy,
     JwtStrategy,
     JwtRefreshStrategy,
     JwtAuthGuard,
     JwtRefreshAuthGuard,
 
-    // Infraestructura de Base de Datos
+    // Infraestructura
     PrismaService,
+    NotificacionesPushService,
+    {
+      provide: 'IPublicadorEventos',
+      useClass: NestjsEventEmitter,   
+    },
     {
       provide: 'IUsuarioRepositorio',
       useClass: PrismaUsuarioRepositorio,
