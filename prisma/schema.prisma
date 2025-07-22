@@ -141,6 +141,7 @@ model RoutineExercise {
   exerciseId  String  @db.Char(36)
   orderIndex  Int     @map("order_index")
   setsReps    String? @map("sets_reps")
+  duracionEstimadaSegundos Int? @map("duracion_estimada_segundos")
 
   routine  Routine  @relation(fields: [routineId], references: [id])
   exercise Exercise @relation(fields: [exerciseId], references: [id])
