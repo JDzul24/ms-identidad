@@ -1,10 +1,21 @@
-import { Controller, Get, Inject, Req, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../../infraestructura/guardias/jwt-auth.guard';
+import {
+  Controller,
+  Get,
+  Inject,
+  Param,
+  ParseUUIDPipe,
+  Req,
+  UseGuards,
+  ForbiddenException,
+} from '@nestjs/common';
+import { JwtAuthGuard } from '../guardias/jwt-auth.guard';
 import { PerfilUsuarioService } from '../../aplicacion/servicios/perfil-usuario.service';
 import { Request } from 'express';
 
-// Definimos una interfaz para extender el objeto Request de Express
-// y añadir la propiedad 'user' que Passport adjunta.
+/**
+ * Interfaz para extender el objeto Request de Express y añadir la propiedad 'user',
+ * que es adjuntada por la estrategia de Passport después de validar un token JWT.
+ */
 interface RequestConUsuario extends Request {
   user: {
     userId: string;
@@ -25,12 +36,25 @@ export class UsuariosController {
    * actualmente autenticado.
    * GET /users/me
    */
-  @UseGuards(JwtAuthGuard) // ¡IMPORTANTE! Esta línea protege la ruta.
+  @UseGuards(JwtAuthGuard)
   @Get('me')
   async obtenerMiPerfil(@Req() req: RequestConUsuario) {
-    // Gracias a JwtStrategy y JwtAuthGuard, el objeto 'req.user'
-    // ya contiene el payload decodificado y validado del token.
+    // La guardia ya validó el token. Extraemos el ID del propio usuario.
     const usuarioId = req.user.userId;
     return this.perfilUsuarioService.ejecutar(usuarioId);
+  }
+
+  /**
+   * Endpoint protegido para obtener el perfil público de cualquier usuario por su ID.
+   * Esencial para la comunicación entre servicios o para roles de administrador.
+   * GET /users/:id
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get(':id')
+  async obtenerPerfilPorId(
+    @Req() req: RequestConUsuario,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.perfilUsuarioService.ejecutar(id);
   }
 }
