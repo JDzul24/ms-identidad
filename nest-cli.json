@@ -2,8 +2,19 @@
   "$schema": "https://json.schemastore.org/nest-cli",
   "collection": "@nestjs/schematics",
   "sourceRoot": "src",
-  "entryFile": "ms-identidad",
   "compilerOptions": {
     "deleteOutDir": true
+  },
+
+  "projects": {
+    "ms-identidad": {
+      "type": "application",
+      "root": "apps/ms-identidad",
+      "entryFile": "main",
+      "sourceRoot": "apps/ms-identidad/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/ms-identidad/tsconfig.app.json"
+      }
+    }
   }
 }
