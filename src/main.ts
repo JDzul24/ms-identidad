@@ -25,7 +25,9 @@ async function bootstrap() {
   await prismaService.enableShutdownHooks(app);
 
   // Inicia el servidor
-  await app.listen(process.env.PORT || 3000);
+  const port = process.env.PORT || 3000;
+  await app.listen(port, '0.0.0.0:80');
+  console.log(`La aplicación está escuchando en el puerto ${port}`);
 }
 
 // Ejecuta la función de arranque
