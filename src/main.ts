@@ -10,6 +10,11 @@ import { PrismaService } from './infraestructura/db/prisma.service';
 async function bootstrap() {
   // Crea la instancia de la aplicación NestJS
   const app = await NestFactory.create(MsIdentidadModule);
+    app.enableCors({
+    origin: '*', // Permitir cualquier origen
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  });
 
   // Habilita un ValidationPipe global para todos los DTOs
   app.useGlobalPipes(
