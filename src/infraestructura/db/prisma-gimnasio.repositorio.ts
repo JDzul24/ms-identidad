@@ -1,10 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
-import { User } from '@prisma/client';
+import {
+  Gym as PrismaGym,
+  User as PrismaUser,
+  Athlete as PrismaAthlete,
+} from '@prisma/client';
 
 import { IGimnasioRepositorio } from '../../dominio/repositorios/gimnasio.repositorio';
 import { Gimnasio } from '../../dominio/entidades/gimnasio.entity';
-import { Usuario, RolUsuario } from '../../dominio/entidades/usuario.entity';
+import {
+  Usuario,
+  RolUsuario,
+  PerfilAtletaDominio,
+} from '../../dominio/entidades/usuario.entity';
+
+// Tipo local para el usuario enriquecido de Prisma
+type PrismaUsuarioConPerfil = PrismaUser & { athleteProfile: PrismaAthlete | null };
 
 @Injectable()
 export class PrismaGimnasioRepositorio implements IGimnasioRepositorio {
@@ -15,44 +26,80 @@ export class PrismaGimnasioRepositorio implements IGimnasioRepositorio {
       where: { gymKey: claveGym },
     });
 
-    if (!gymDb) {
-      return null;
-    }
-    // Suponiendo que la entidad Gimnasio tiene un método 'desdePersistencia'
-    return Gimnasio.desdePersistencia(gymDb);
+    return gymDb ? this.mapearGimnasioADominio(gymDb) : null;
   }
 
   public async obtenerMiembros(gymId: string): Promise<Usuario[]> {
     const relaciones = await this.prisma.userGymRelation.findMany({
       where: { gymId: gymId },
       include: {
-        user: true,
+        user: {
+          include: {
+            athleteProfile: true,
+          },
+        },
       },
     });
 
-    // Mapeamos los resultados a nuestra entidad de dominio 'Usuario'
-    return relaciones.map((relacion) =>
-      this.mapearUsuarioADominio(relacion.user),
+    return relaciones.map((rel) =>
+      this.mapearUsuarioADominio(rel.user as PrismaUsuarioConPerfil),
     );
   }
 
-  /**
-   * Mapea un objeto de usuario de la base de datos a una entidad de dominio.
-   * @param usuarioDb - El objeto 'User' recuperado de Prisma.
-   * @returns Una instancia de la entidad de dominio `Usuario`.
-   */
-  private mapearUsuarioADominio(usuarioDb: User): Usuario {
+  public async encontrarPorMiembroId(
+    miembroId: string,
+  ): Promise<Gimnasio | null> {
+    const relacion = await this.prisma.userGymRelation.findFirst({
+      where: { userId: miembroId },
+    });
+
+    if (!relacion) {
+      return null;
+    }
+
+    const gymDb = await this.prisma.gym.findUnique({
+      where: { id: relacion.gymId },
+    });
+
+    return gymDb ? this.mapearGimnasioADominio(gymDb) : null;
+  }
+
+  private mapearGimnasioADominio(persistencia: PrismaGym): Gimnasio {
+    return Gimnasio.desdePersistencia({
+      id: persistencia.id,
+      ownerId: persistencia.ownerId,
+      name: persistencia.name,
+      gymKey: persistencia.gymKey,
+    });
+  }
+
+  private mapearUsuarioADominio(usuarioDb: PrismaUsuarioConPerfil): Usuario {
+    let perfilAtletaDominio: PerfilAtletaDominio | null = null;
+    if (usuarioDb.athleteProfile) {
+      perfilAtletaDominio = {
+        nivel: usuarioDb.athleteProfile.level,
+        alturaCm: usuarioDb.athleteProfile.height_cm,
+        pesoKg: usuarioDb.athleteProfile.weight_kg,
+        guardia: usuarioDb.athleteProfile.stance,
+        alergias: usuarioDb.athleteProfile.allergies,
+        contactoEmergenciaNombre:
+          usuarioDb.athleteProfile.emergency_contact_name,
+        contactoEmergenciaTelefono:
+          usuarioDb.athleteProfile.emergency_contact_phone,
+      };
+    }
+
     return Usuario.desdePersistencia({
       id: usuarioDb.id,
       email: usuarioDb.email,
       passwordHash: usuarioDb.password_hash ?? '',
       refreshTokenHash: usuarioDb.refresh_token_hash,
+      fcmToken: usuarioDb.fcm_token,
       nombre: usuarioDb.name,
       rol: usuarioDb.role as RolUsuario,
       createdAt: usuarioDb.createdAt,
-      fcmToken: '',
-      perfilAtleta: undefined,
-      gimnasio: undefined
+      perfilAtleta: perfilAtletaDominio,
+      gimnasio: null, // El gimnasio no se mapea aquí para evitar bucles
     });
   }
 }
