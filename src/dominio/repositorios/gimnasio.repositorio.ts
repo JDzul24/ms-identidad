@@ -5,20 +5,17 @@ import { Usuario } from '../entidades/usuario.entity';
  * Interfaz que define las operaciones de persistencia para la entidad Gimnasio.
  */
 export interface IGimnasioRepositorio {
-  /**
-   * Busca un gimnasio por su clave de registro única.
-   */
   encontrarPorClave(claveGym: string): Promise<Gimnasio | null>;
-
-  /**
-   * Obtiene todos los usuarios (miembros) asociados a un gimnasio específico.
-   */
   obtenerMiembros(gymId: string): Promise<Usuario[]>;
+  encontrarPorMiembroId(miembroId: string): Promise<Gimnasio | null>;
 
   /**
-   * Busca el gimnasio al que pertenece un usuario (miembro).
-   * @param miembroId El ID del usuario (atleta o entrenador).
-   * @returns Una promesa que resuelve a la entidad Gimnasio si el usuario pertenece a uno, o null en caso contrario.
+   * Actualiza la clave de registro de un gimnasio.
+   * @param ownerId - El ID del usuario propietario del gimnasio (Admin).
+   * @param nuevaClave - La nueva clave de registro para el gimnasio.
+   * @returns Una promesa que resuelve a la entidad Gimnasio actualizada.
+   * @throws Error si el usuario no es dueño de ningún gimnasio.
    */
-  encontrarPorMiembroId(miembroId: string): Promise<Gimnasio | null>;
+  actualizarClave(ownerId: string, nuevaClave: string): Promise<Gimnasio>;
 }
+

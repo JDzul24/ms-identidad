@@ -22,6 +22,7 @@ import { AprobarAtletaService } from './aplicacion/servicios/aprobar-atleta.serv
 import { ConsultarMiembrosService } from './aplicacion/servicios/consultar-miembros.service';
 import { ObtenerClaveGimnasioService } from './aplicacion/servicios/obtener-clave-gimnasio.service';
 import { VincularGimnasioService } from './aplicacion/servicios/vincular-gimnasio.service';
+import { ModificarClaveGimnasioService } from './aplicacion/servicios/modificar-clave-gimnasio.service';
 
 // --- Manejadores de Eventos ---
 import { ManejadorAtletaAprobado } from './aplicacion/manejadores/manejador-atleta-aprobado';
@@ -76,6 +77,7 @@ import { NestjsEventEmitter } from './infraestructura/eventos/nestjs-event-emitt
     ConsultarMiembrosService,
     ObtenerClaveGimnasioService,
     VincularGimnasioService, 
+    ModificarClaveGimnasioService,
 
     // Manejadores de Eventos
     ManejadorAtletaAprobado,

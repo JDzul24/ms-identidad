@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import {
   Gym as PrismaGym,
@@ -15,7 +15,9 @@ import {
 } from '../../dominio/entidades/usuario.entity';
 
 // Tipo local para el usuario enriquecido de Prisma
-type PrismaUsuarioConPerfil = PrismaUser & { athleteProfile: PrismaAthlete | null };
+type PrismaUsuarioConPerfil = PrismaUser & {
+  athleteProfile: PrismaAthlete | null;
+};
 
 @Injectable()
 export class PrismaGimnasioRepositorio implements IGimnasioRepositorio {
@@ -64,6 +66,31 @@ export class PrismaGimnasioRepositorio implements IGimnasioRepositorio {
     return gymDb ? this.mapearGimnasioADominio(gymDb) : null;
   }
 
+  /**
+   * Implementación del nuevo método para actualizar la clave de un gimnasio.
+   */
+  public async actualizarClave(
+    ownerId: string,
+    nuevaClave: string,
+  ): Promise<Gimnasio> {
+    try {
+      const gimnasioActualizadoDb = await this.prisma.gym.update({
+        where: { ownerId: ownerId },
+        data: { gymKey: nuevaClave },
+      });
+      return this.mapearGimnasioADominio(gimnasioActualizadoDb);
+    } catch (error) {
+      // Captura el error específico de Prisma cuando el registro a actualizar no se encuentra.
+      if (error.code === 'P2025') {
+        throw new NotFoundException(
+          `No se encontró un gimnasio propiedad del usuario con ID ${ownerId}.`,
+        );
+      }
+      // Re-lanza cualquier otro error inesperado.
+      throw error;
+    }
+  }
+
   private mapearGimnasioADominio(persistencia: PrismaGym): Gimnasio {
     return Gimnasio.desdePersistencia({
       id: persistencia.id,
@@ -99,7 +126,7 @@ export class PrismaGimnasioRepositorio implements IGimnasioRepositorio {
       rol: usuarioDb.role as RolUsuario,
       createdAt: usuarioDb.createdAt,
       perfilAtleta: perfilAtletaDominio,
-      gimnasio: null, // El gimnasio no se mapea aquí para evitar bucles
+      gimnasio: null,
     });
   }
 }
