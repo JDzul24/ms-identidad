@@ -17,36 +17,29 @@ datasource db {
 // -----------------------------------------------------
 
 model User {
-  id                 String    @id @db.Char(36)
-  email              String    @unique
-  password_hash      String?
-  refresh_token_hash String?   @db.Text
-  fcm_token          String?   @db.Text
-  name               String
-  role               UserRole
-  createdAt          DateTime  @default(now()) @map("created_at")
-  
-  // --- CAMPOS MODIFICADOS ---
-  status             String    @default("pending_capture") // 'pending_capture' o 'complete'
-  gymId              String?   @db.Char(36)
-  
-  // --- RELACIONES ACTUALIZADAS ---
-  gym                Gym?      @relation(fields: [gymId], references: [id])
-  ownedGym           Gym?      @relation("OwnerToGym")
-  physicalData       AthletePhysicalData?
-  tutorData          AthleteTutorData?
-  
-  // Relaciones con otros contextos (sin cambios)
-  createdGoals       Goal[]
-  assignedPlans      AthleteAssignment[]         @relation("AssignerToAssignment")
-  athleteAssignments AthleteAssignment[]         @relation("AthleteToAssignment")
-  trainingSessions   TrainingSession[]
-  combatEvents       CombatEvent[]
-  testResults        TestResult[]
-  coachObservations  CoachObservation[]
-  attendances        Attendance[]                @relation("AthleteToAttendance")
-  registeredAttendances Attendance[]             @relation("CoachToAttendance")
-  
+  id                      String    @id @db.Char(36)
+  email                   String    @unique
+  password_hash           String?
+  refresh_token_hash      String?   @db.Text
+  fcm_token               String?   @db.Text
+  name                    String
+  role                    UserRole
+  createdAt               DateTime  @default(now()) @map("created_at")
+
+  // Relaciones
+  ownedGym                Gym?                        @relation("OwnerToGym")
+  gyms                    UserGymRelation[]
+  athleteProfile          Athlete?
+  coachApprovals          AthleteDataCaptureRequest[] @relation("CoachApprovals")
+  athleteRequests         AthleteDataCaptureRequest[] @relation("AthleteRequests")
+  createdGoals            Goal[]
+  assignedPlans           AthleteAssignment[]         @relation("AssignerToAssignment")
+  athleteAssignments      AthleteAssignment[]         @relation("AthleteToAssignment")
+  trainingSessions        TrainingSession[]
+  combatEvents            CombatEvent[]
+  testResults             TestResult[]
+  coachObservations       CoachObservation[]
+
   @@map("users")
 }
 
@@ -60,41 +53,6 @@ model Gym {
   members UserGymRelation[]
 
   @@map("gyms")
-}
-
-// --- NUEVO MODELO: Datos Físicos del Atleta ---
-model AthletePhysicalData {
-  id              String   @id @default(cuid())
-  athleteId       String   @unique @db.Char(36)
-  peso            Float?
-  estatura        Int?
-  nivel           String?
-  guardia         String?
-  condicionesMedicas String? @db.Text
-  objetivos       String?  @db.Text
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  athlete User @relation(fields: [athleteId], references: [id])
-  
-  @@map("athlete_physical_data")
-}
-
-// --- NUEVO MODELO: Datos del Tutor del Atleta ---
-model AthleteTutorData {
-  id             String   @id @default(cuid())
-  athleteId      String   @unique @db.Char(36)
-  nombreTutor    String?
-  telefonoTutor  String?
-  relacionTutor  String?
-  direccionTutor String?  @db.Text
-  emailTutor     String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  athlete User @relation(fields: [athleteId], references: [id])
-
-  @@map("athlete_tutor_data")
 }
 
 model UserGymRelation {
@@ -323,9 +281,6 @@ model Attendance {
   athleteId      String   @db.Char(36)
   attendanceDate DateTime @db.Date @map("attendance_date")
   registeredById String   @db.Char(36)
-
-  athlete        User     @relation("AthleteToAttendance", fields: [athleteId], references: [id])
-  registeredBy   User     @relation("CoachToAttendance", fields: [registeredById], references: [id])
 
   // Definimos una clave única compuesta para prevenir que un atleta
   // tenga dos registros de asistencia para el mismo día.
