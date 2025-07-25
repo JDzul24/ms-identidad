@@ -10,17 +10,17 @@ import {
   HttpException,
   HttpStatus,
   HttpCode,
-  Patch, // Se añade Patch
-  Body,  // Se añade Body
-  UsePipes, // Se añade UsePipes
-  ValidationPipe, // Se añade ValidationPipe
+  Patch,
+  Body,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../guardias/jwt-auth.guard';
 import { Request } from 'express';
 import { ConsultarMiembrosService } from '../../aplicacion/servicios/consultar-miembros.service';
 import { ObtenerClaveGimnasioService } from '../../aplicacion/servicios/obtener-clave-gimnasio.service';
-import { ModificarClaveGimnasioService } from '../../aplicacion/servicios/modificar-clave-gimnasio.service'; // Se importa el nuevo servicio
-import { ModificarClaveGimnasioDto } from '../dtos/modificar-clave-gimnasio.dto'; // Se importa el nuevo DTO
+import { ModificarClaveGimnasioService } from '../../aplicacion/servicios/modificar-clave-gimnasio.service';
+import { ModificarClaveGimnasioDto } from '../dtos/modificar-clave-gimnasio.dto';
 
 interface RequestConUsuario extends Request {
   user: { userId: string; rol: string };
@@ -34,7 +34,6 @@ export class GimnasiosController {
     private readonly consultarMiembrosService: ConsultarMiembrosService,
     @Inject(ObtenerClaveGimnasioService)
     private readonly obtenerClaveGimnasioService: ObtenerClaveGimnasioService,
-    // Se inyecta el nuevo servicio de modificación
     @Inject(ModificarClaveGimnasioService)
     private readonly modificarClaveGimnasioService: ModificarClaveGimnasioService,
   ) {}
@@ -51,7 +50,8 @@ export class GimnasiosController {
         );
       }
 
-      return await this.obtenerClaveGimnasioService.ejecutar(solicitanteId);
+      // --- CORRECCIÓN AQUÍ: Se pasa el 'rol' al servicio ---
+      return await this.obtenerClaveGimnasioService.ejecutar(solicitanteId, rol);
     } catch (error) {
       const status =
         error instanceof HttpException
@@ -65,10 +65,6 @@ export class GimnasiosController {
     }
   }
 
-  /**
-   * Endpoint protegido para que un administrador modifique la clave de registro de su gimnasio.
-   * PATCH /gyms/my/key
-   */
   @Patch('my/key')
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true }))
@@ -79,7 +75,6 @@ export class GimnasiosController {
     try {
       const { userId: solicitanteId, rol } = req.user;
 
-      // Autorización a nivel de Rol: Solo los administradores pueden modificar la clave.
       if (rol !== 'Admin') {
         throw new ForbiddenException(
           'No tienes los permisos necesarios para modificar la clave del gimnasio.',

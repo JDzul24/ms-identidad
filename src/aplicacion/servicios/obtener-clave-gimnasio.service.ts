@@ -1,6 +1,7 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { IGimnasioRepositorio } from '../../dominio/repositorios/gimnasio.repositorio';
 import { ClaveGimnasioDto } from '../../infraestructura/dtos/clave-gimnasio.dto';
+import { Gimnasio } from '../../dominio/entidades/gimnasio.entity';
 
 @Injectable()
 export class ObtenerClaveGimnasioService {
@@ -11,26 +12,40 @@ export class ObtenerClaveGimnasioService {
 
   /**
    * Ejecuta la lógica para obtener la clave de registro del gimnasio
-   * al que pertenece el usuario solicitante.
+   * al que pertenece el usuario solicitante, diferenciando por rol.
    *
-   * @param solicitanteId El ID del entrenador autenticado (del token JWT).
+   * @param solicitanteId El ID del usuario autenticado (del token JWT).
+   * @param rol El rol del usuario autenticado.
    * @returns Un DTO que contiene la clave del gimnasio.
-   * @throws NotFoundException si el usuario no pertenece a ningún gimnasio.
+   * @throws NotFoundException si el usuario no está asociado a ningún gimnasio.
    */
-  async ejecutar(solicitanteId: string): Promise<ClaveGimnasioDto> {
-    // 1. Utilizar el repositorio para encontrar el gimnasio asociado al ID del miembro.
-    const gimnasio = await this.gimnasioRepositorio.encontrarPorMiembroId(
-      solicitanteId,
-    );
+  async ejecutar(
+    solicitanteId: string,
+    rol: string,
+  ): Promise<ClaveGimnasioDto> {
+    let gimnasio: Gimnasio | null;
 
-    // 2. Validar que se encontró un gimnasio.
-    if (!gimnasio) {
-      throw new NotFoundException(
-        'El usuario solicitante no está asociado a ningún gimnasio.',
+    // Lógica condicional para determinar cómo buscar el gimnasio.
+    if (rol === 'Admin') {
+      // Un Admin es el dueño del gimnasio.
+      gimnasio = await this.gimnasioRepositorio.encontrarPorOwnerId(
+        solicitanteId,
+      );
+    } else {
+      // Un Entrenador es un miembro del gimnasio.
+      gimnasio = await this.gimnasioRepositorio.encontrarPorMiembroId(
+        solicitanteId,
       );
     }
 
-    // 3. Mapear la clave del gimnasio al DTO de respuesta.
+    // Validar que se encontró un gimnasio para el usuario.
+    if (!gimnasio) {
+      throw new NotFoundException(
+        'No se encontró un gimnasio asociado a este usuario.',
+      );
+    }
+
+    // Mapear la clave del gimnasio encontrado al DTO de respuesta.
     return {
       claveGym: gimnasio.gymKey,
     };
