@@ -1,6 +1,11 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsString,
+  MinLength,
+} from 'class-validator';
 
-// Usamos un enum para asegurar que el rol sea uno de los valores permitidos.
 export enum RolUsuario {
   Atleta = 'Atleta',
   Entrenador = 'Entrenador',
@@ -14,7 +19,7 @@ export class RegistrarUsuarioDto {
 
   @IsString()
   @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres.' })
-  @IsNotEmpty({ message: 'La contraseña no puede estar vacía.' })
+  @IsNotEmpty({ message: 'La contraseña no puede estaría.' })
   password: string;
 
   @IsString()
@@ -24,8 +29,4 @@ export class RegistrarUsuarioDto {
   @IsEnum(RolUsuario, { message: 'El rol proporcionado no es válido.' })
   @IsNotEmpty({ message: 'Debe especificar un rol.' })
   rol: RolUsuario;
-
-  @IsString()
-  @IsNotEmpty({ message: 'La clave del gimnasio no puede estar vacía.' })
-  claveGym: string;
 }
