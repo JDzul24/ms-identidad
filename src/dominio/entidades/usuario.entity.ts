@@ -3,8 +3,6 @@ import * as bcrypt from 'bcrypt';
 
 export type RolUsuario = 'Atleta' | 'Entrenador' | 'Admin';
 
-// Interfaces que definen la forma de los datos enriquecidos dentro del dominio.
-// Siguen la convención de nomenclatura del dominio.
 export interface PerfilAtletaDominio {
   nivel: string | null;
   alturaCm: number | null;
@@ -23,21 +21,20 @@ export interface GimnasioDominio {
 export class Usuario {
   readonly id: string;
   readonly email: string;
-  private passwordHash: string;
+  private passwordHash: string | null; // Puede ser nulo si Cognito gestiona la contraseña
   public refreshTokenHash: string | null;
   public fcmToken: string | null;
   readonly nombre: string;
   readonly rol: RolUsuario;
   readonly createdAt: Date;
 
-  // Propiedades que contienen los datos de las relaciones (pueden ser nulas)
   public perfilAtleta: PerfilAtletaDominio | null;
   public gimnasio: GimnasioDominio | null;
 
   private constructor(props: {
     id: string;
     email: string;
-    passwordHash: string;
+    passwordHash: string | null;
     refreshTokenHash: string | null;
     fcmToken: string | null;
     nombre: string;
@@ -58,6 +55,9 @@ export class Usuario {
     this.gimnasio = props.gimnasio;
   }
 
+  /**
+   * Método de fábrica original, útil para crear usuarios gestionados localmente.
+   */
   public static async crear(props: {
     email: string;
     passwordPlano: string;
@@ -77,15 +77,40 @@ export class Usuario {
       nombre: props.nombre,
       rol: props.rol,
       createdAt: new Date(),
-      perfilAtleta: null, // Un usuario nuevo no tiene perfil de atleta
-      gimnasio: null,    // Un usuario nuevo no tiene gimnasio asignado inicialmente
+      perfilAtleta: null,
+      gimnasio: null,
+    });
+  }
+  
+  /**
+   * --- NUEVO MÉTODO DE FÁBRICA ---
+   * Crea una instancia de Usuario cuando la identidad es gestionada por Cognito.
+   * Utiliza el ID (sub) de Cognito y no requiere contraseña.
+   */
+  public static crearSincronizado(props: {
+    id: string; // ID (sub) de Cognito
+    email: string;
+    nombre: string;
+    rol: RolUsuario;
+  }): Usuario {
+    return new Usuario({
+      id: props.id,
+      email: props.email,
+      passwordHash: null, // Cognito gestiona la contraseña, no la almacenamos
+      refreshTokenHash: null,
+      fcmToken: null,
+      nombre: props.nombre,
+      rol: props.rol,
+      createdAt: new Date(),
+      perfilAtleta: null,
+      gimnasio: null,
     });
   }
 
   public static desdePersistencia(props: {
     id: string;
     email: string;
-    passwordHash: string;
+    passwordHash: string | null;
     refreshTokenHash: string | null;
     fcmToken: string | null;
     nombre: string;
@@ -97,7 +122,7 @@ export class Usuario {
     return new Usuario(props);
   }
 
-  public obtenerPasswordHash(): string {
+  public obtenerPasswordHash(): string | null {
     return this.passwordHash;
   }
 

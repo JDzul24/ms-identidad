@@ -23,6 +23,7 @@
     "prisma:deploy": "dotenv -e .env -- npx prisma migrate deploy"
   },
   "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.848.0",
     "@nestjs/axios": "^3.0.2",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^3.2.2",
