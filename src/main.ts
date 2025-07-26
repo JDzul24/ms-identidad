@@ -5,18 +5,26 @@ import { PrismaService } from './infraestructura/db/prisma.service';
 
 /**
  * Función de arranque (bootstrap) para el microservicio de Identidad.
- * Este es el punto de entrada de la aplicación.
  */
 async function bootstrap() {
-  // Crea la instancia de la aplicación NestJS
   const app = await NestFactory.create(MsIdentidadModule);
-    app.enableCors({
-    origin: '*', // Permitir cualquier origen
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+
+  // --- CORRECCIÓN 1: Habilitar CORS explícitamente ---
+  // Se configura la política de CORS para permitir peticiones desde el entorno
+  // de desarrollo local de Flutter y cualquier otro origen.
+  app.enableCors({
+    origin: '*', // Permite cualquier origen para máxima flexibilidad en desarrollo.
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
+    allowedHeaders: 'Content-Type,Authorization,Accept',
   });
 
-  // Habilita un ValidationPipe global para todos los DTOs
+  // --- CORRECCIÓN 2: Establecer el Prefijo Global de la API ---
+  // Todas las rutas definidas en los controladores ahora tendrán el prefijo '/v1'.
+  // Ejemplo: @Controller('users') -> /v1/users
+  app.setGlobalPrefix('/v1');
+
+  // Se mantiene el ValidationPipe global.
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -25,13 +33,13 @@ async function bootstrap() {
     }),
   );
 
-  // Habilita los 'shutdown hooks' para un cierre seguro
+  // Se mantiene la gestión de shutdown hooks para Prisma.
   const prismaService = app.get(PrismaService);
   await prismaService.enableShutdownHooks(app);
 
-  // Inicia el servidor
-  await app.listen(process.env.PORT || 3000);
+  // Se inicia el servidor.
+  await app.listen(process.env.PORT || 3000, '0.0.0.0');
 }
 
 // Ejecuta la función de arranque
-bootstrap();
+void bootstrap();
