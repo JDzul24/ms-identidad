@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post, // Se añade Post
   Inject,
   Param,
   ParseUUIDPipe,
@@ -20,9 +21,11 @@ import { Request } from 'express';
 import { ObtenerClaveGimnasioService } from '../../aplicacion/servicios/obtener-clave-gimnasio.service';
 import { ModificarClaveGimnasioService } from '../../aplicacion/servicios/modificar-clave-gimnasio.service';
 import { ModificarClaveGimnasioDto } from '../dtos/modificar-clave-gimnasio.dto';
+import { SincronizarUsuarioService } from '../../aplicacion/servicios/sincronizar-usuario.service'; // Se importa el nuevo servicio
+import { RolUsuario } from '../../dominio/entidades/usuario.entity';
 
 interface RequestConUsuario extends Request {
-  user: { userId: string; email: string; rol: string; };
+  user: { userId: string; email: string; nombre: string; rol: RolUsuario }; // 'nombre' se necesita para el sync
 }
 
 @Controller('users')
@@ -35,7 +38,28 @@ export class UsuariosController {
     private readonly obtenerClaveGimnasioService: ObtenerClaveGimnasioService,
     @Inject(ModificarClaveGimnasioService)
     private readonly modificarClaveGimnasioService: ModificarClaveGimnasioService,
+    // Se inyecta el nuevo servicio de sincronización
+    @Inject(SincronizarUsuarioService)
+    private readonly sincronizarUsuarioService: SincronizarUsuarioService,
   ) {}
+
+  /**
+   * Endpoint para que el frontend sincronice el usuario de Cognito
+   * con la base de datos local después del primer login.
+   * POST /users/sync
+   */
+  @Post('sync')
+  @HttpCode(HttpStatus.OK)
+  async sincronizarUsuario(@Req() req: RequestConUsuario) {
+    const { userId, email, nombre, rol } = req.user;
+    // La guardia ya validó el token. Simplemente pasamos los datos al servicio.
+    return this.sincronizarUsuarioService.ejecutar({
+      id: userId,
+      email,
+      nombre,
+      rol,
+    });
+  }
 
   @Get('me')
   async obtenerMiPerfil(@Req() req: RequestConUsuario) {
@@ -43,7 +67,7 @@ export class UsuariosController {
     return this.perfilUsuarioService.ejecutar(usuarioId);
   }
 
-  @Get('me/gym/key') // <-- RUTA CORREGIDA
+  @Get('me/gym/key')
   @HttpCode(HttpStatus.OK)
   async obtenerMiClaveDeGimnasio(@Req() req: RequestConUsuario) {
     const { userId: solicitanteId, rol } = req.user;
@@ -53,7 +77,7 @@ export class UsuariosController {
     return this.obtenerClaveGimnasioService.ejecutar(solicitanteId, rol);
   }
 
-  @Patch('me/gym/key') // <-- RUTA CORREGIDA
+  @Patch('me/gym/key')
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
   async modificarMiClaveDeGimnasio(

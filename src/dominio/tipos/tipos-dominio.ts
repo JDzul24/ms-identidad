@@ -15,3 +15,20 @@ export interface PerfilAtletaActualizable {
   contactoEmergenciaNombre?: string;
   contactoEmergenciaTelefono?: string;
 }
+export interface PerfilAtletaDominio {
+  nivel: string | null;
+  alturaCm: number | null;
+  pesoKg: number | null;
+  guardia: string | null;
+  alergias: string | null;
+  contactoEmergenciaNombre: string | null;
+  contactoEmergenciaTelefono: string | null;
+}
+
+/**
+ * Define la estructura de los datos enriquecidos de un gimnasio en el dominio.
+ */
+export interface GimnasioDominio {
+  id: string;
+  nombre: string;
+}

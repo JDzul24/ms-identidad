@@ -1,33 +1,18 @@
 import { randomUUID } from 'crypto';
 import * as bcrypt from 'bcrypt';
+import { PerfilAtletaDominio, GimnasioDominio } from '../tipos/tipos-dominio';
 
 export type RolUsuario = 'Atleta' | 'Entrenador' | 'Admin';
-
-export interface PerfilAtletaDominio {
-  nivel: string | null;
-  alturaCm: number | null;
-  pesoKg: number | null;
-  guardia: string | null;
-  alergias: string | null;
-  contactoEmergenciaNombre: string | null;
-  contactoEmergenciaTelefono: string | null;
-}
-
-export interface GimnasioDominio {
-  id: string;
-  nombre: string;
-}
 
 export class Usuario {
   readonly id: string;
   readonly email: string;
-  private passwordHash: string | null; // Puede ser nulo si Cognito gestiona la contraseña
+  private passwordHash: string | null;
   public refreshTokenHash: string | null;
   public fcmToken: string | null;
   readonly nombre: string;
   readonly rol: RolUsuario;
   readonly createdAt: Date;
-
   public perfilAtleta: PerfilAtletaDominio | null;
   public gimnasio: GimnasioDominio | null;
 
@@ -55,9 +40,6 @@ export class Usuario {
     this.gimnasio = props.gimnasio;
   }
 
-  /**
-   * Método de fábrica original, útil para crear usuarios gestionados localmente.
-   */
   public static async crear(props: {
     email: string;
     passwordPlano: string;
@@ -81,14 +63,14 @@ export class Usuario {
       gimnasio: null,
     });
   }
-  
+
   /**
    * --- NUEVO MÉTODO DE FÁBRICA ---
-   * Crea una instancia de Usuario cuando la identidad es gestionada por Cognito.
-   * Utiliza el ID (sub) de Cognito y no requiere contraseña.
+   * Crea una instancia de Usuario a partir de datos sincronizados (ej. de un token).
+   * No requiere contraseña.
    */
   public static crearSincronizado(props: {
-    id: string; // ID (sub) de Cognito
+    id: string;
     email: string;
     nombre: string;
     rol: RolUsuario;
@@ -96,7 +78,7 @@ export class Usuario {
     return new Usuario({
       id: props.id,
       email: props.email,
-      passwordHash: null, // Cognito gestiona la contraseña, no la almacenamos
+      passwordHash: null, // La contraseña es gestionada por Cognito
       refreshTokenHash: null,
       fcmToken: null,
       nombre: props.nombre,
