@@ -3,16 +3,19 @@ import { PrismaService } from './prisma.service';
 import * as bcrypt from 'bcrypt';
 import { User, Athlete, Gym } from '@prisma/client';
 
+import { IUsuarioRepositorio } from '../../dominio/repositorios/usuario.repositorio';
+// --- CORRECCIÓN DE IMPORTACIÓN ---
 import {
-  IUsuarioRepositorio,
-} from '../../dominio/repositorios/usuario.repositorio';
-import { PerfilAtletaActualizable } from '../../dominio/tipos/tipos-dominio';
+  PerfilAtletaActualizable,
+  PerfilAtletaDominio,
+  GimnasioDominio,
+} from '../../dominio/tipos/tipos-dominio';
 import {
   Usuario,
   RolUsuario,
-  PerfilAtletaDominio,
-  GimnasioDominio,
 } from '../../dominio/entidades/usuario.entity';
+// --- FIN DE LA CORRECCIÓN ---
+
 
 // Tipo local para la respuesta enriquecida de Prisma
 type UsuarioConPerfilCompleto = User & {
@@ -115,9 +118,6 @@ export class PrismaUsuarioRepositorio implements IUsuarioRepositorio {
     });
   }
 
-  /**
-   * Implementación del nuevo método para asociar un usuario a un gimnasio.
-   */
   public async asociarAGimnasio(usuarioId: string, gymId: string): Promise<void> {
     await this.prisma.userGymRelation.create({
       data: {

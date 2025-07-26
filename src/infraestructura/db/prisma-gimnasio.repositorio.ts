@@ -8,11 +8,15 @@ import {
 
 import { IGimnasioRepositorio } from '../../dominio/repositorios/gimnasio.repositorio';
 import { Gimnasio } from '../../dominio/entidades/gimnasio.entity';
+// --- CORRECCIÓN DE IMPORTACIÓN ---
 import {
   Usuario,
   RolUsuario,
-  PerfilAtletaDominio,
 } from '../../dominio/entidades/usuario.entity';
+// Se importa PerfilAtletaDominio desde su fuente de verdad
+import { PerfilAtletaDominio } from '../../dominio/tipos/tipos-dominio';
+// --- FIN DE LA CORRECCIÓN ---
+
 
 type PrismaUsuarioConPerfil = PrismaUser & {
   athleteProfile: PrismaAthlete | null;
