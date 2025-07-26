@@ -10,7 +10,7 @@ import {
   HttpException,
   HttpStatus,
   HttpCode,
-  Patch,
+  Post,
   Body,
   UsePipes,
   ValidationPipe,
@@ -18,9 +18,8 @@ import {
 import { JwtAuthGuard } from '../guardias/jwt-auth.guard';
 import { Request } from 'express';
 import { ConsultarMiembrosService } from '../../aplicacion/servicios/consultar-miembros.service';
-import { ObtenerClaveGimnasioService } from '../../aplicacion/servicios/obtener-clave-gimnasio.service';
-import { ModificarClaveGimnasioService } from '../../aplicacion/servicios/modificar-clave-gimnasio.service';
-import { ModificarClaveGimnasioDto } from '../dtos/modificar-clave-gimnasio.dto';
+import { VincularGimnasioService } from '../../aplicacion/servicios/vincular-gimnasio.service';
+import { VincularGimnasioDto } from '../dtos/vincular-gimnasio.dto';
 
 interface RequestConUsuario extends Request {
   user: { userId: string; rol: string };
@@ -32,26 +31,21 @@ export class GimnasiosController {
   constructor(
     @Inject(ConsultarMiembrosService)
     private readonly consultarMiembrosService: ConsultarMiembrosService,
-    @Inject(ObtenerClaveGimnasioService)
-    private readonly obtenerClaveGimnasioService: ObtenerClaveGimnasioService,
-    @Inject(ModificarClaveGimnasioService)
-    private readonly modificarClaveGimnasioService: ModificarClaveGimnasioService,
+    @Inject(VincularGimnasioService)
+    private readonly vincularGimnasioService: VincularGimnasioService,
   ) {}
 
-  @Get('my/key')
+  @Post('link')
   @HttpCode(HttpStatus.OK)
-  async obtenerMiClaveDeGimnasio(@Req() req: RequestConUsuario) {
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true }))
+  async vincularAGimnasio(
+    @Req() req: RequestConUsuario,
+    @Body() vincularGimnasioDto: VincularGimnasioDto,
+  ) {
     try {
-      const { userId: solicitanteId, rol } = req.user;
-
-      if (rol !== 'Entrenador' && rol !== 'Admin') {
-        throw new ForbiddenException(
-          'Solo los entrenadores o administradores pueden obtener la clave del gimnasio.',
-        );
-      }
-
-      // --- CORRECCIÓN AQUÍ: Se pasa el 'rol' al servicio ---
-      return await this.obtenerClaveGimnasioService.ejecutar(solicitanteId, rol);
+      const { userId } = req.user;
+      const { claveGym } = vincularGimnasioDto;
+      return await this.vincularGimnasioService.ejecutar(userId, claveGym);
     } catch (error) {
       const status =
         error instanceof HttpException
@@ -60,36 +54,8 @@ export class GimnasiosController {
       const message =
         error instanceof Error
           ? error.message
-          : 'Ocurrió un error inesperado al obtener la clave del gimnasio.';
+          : 'Ocurrió un error inesperado al vincular la cuenta.';
       throw new HttpException({ statusCode: status, message }, status);
-    }
-  }
-
-  @Patch('my/key')
-  @HttpCode(HttpStatus.OK)
-  @UsePipes(new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true }))
-  async modificarMiClaveDeGimnasio(
-    @Req() req: RequestConUsuario,
-    @Body() modificarClaveDto: ModificarClaveGimnasioDto,
-  ) {
-    try {
-      const { userId: solicitanteId, rol } = req.user;
-
-      if (rol !== 'Admin') {
-        throw new ForbiddenException(
-          'No tienes los permisos necesarios para modificar la clave del gimnasio.',
-        );
-      }
-      
-      return await this.modificarClaveGimnasioService.ejecutar(solicitanteId, modificarClaveDto.nuevaClave);
-    } catch (error) {
-        const status =
-            error instanceof HttpException
-            ? error.getStatus()
-            : HttpStatus.INTERNAL_SERVER_ERROR;
-        const message =
-            error instanceof Error ? error.message : 'Ocurrió un error inesperado al modificar la clave.';
-        throw new HttpException({ statusCode: status, message }, status);
     }
   }
 
@@ -101,13 +67,11 @@ export class GimnasiosController {
   ) {
     try {
       const { userId: solicitanteId, rol } = req.user;
-
       if (rol !== 'Entrenador' && rol !== 'Admin') {
         throw new ForbiddenException(
           'No tienes los permisos necesarios para ver los miembros del gimnasio.',
         );
       }
-
       return await this.consultarMiembrosService.ejecutar(solicitanteId, gymId);
     } catch (error) {
       const status =

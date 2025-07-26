@@ -12,6 +12,7 @@ import { UsuariosController } from './infraestructura/controladores/usuarios.con
 import { SolicitudesController } from './infraestructura/controladores/solicitudes.controller';
 import { AtletasController } from './infraestructura/controladores/atletas.controller';
 import { GimnasiosController } from './infraestructura/controladores/gimnasios.controller';
+import { PerfilController } from './infraestructura/controladores/perfil.controller';
 
 // --- Servicios de Aplicación ---
 import { AuthService } from './aplicacion/servicios/auth.service';
@@ -66,6 +67,7 @@ import { NestjsEventEmitter } from './infraestructura/eventos/nestjs-event-emitt
     SolicitudesController,
     AtletasController,
     GimnasiosController,
+    PerfilController,
   ],
   providers: [
     // Servicios de Aplicación
