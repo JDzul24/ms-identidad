@@ -45,10 +45,10 @@ export class GimnasiosController {
     @Body() vincularGimnasioDto: VincularGimnasioDto,
   ) {
     try {
-      // ¡CORRECTO! El userId se obtiene del token seguro, no del body.
+      // ¡CORREGIDO! El userId se obtiene del token seguro, no del body.
       const { userId } = req.user;
-      const { claveGimnasio } = vincularGimnasioDto; // DTO corregido
-      return await this.vincularGimnasioService.ejecutar(userId, claveGimnasio);
+      const { claveGym } = vincularGimnasioDto; // DTO corregido: Usar claveGym
+      return await this.vincularGimnasioService.ejecutar(userId, claveGym);
     } catch (error) {
       const status =
         error instanceof HttpException
