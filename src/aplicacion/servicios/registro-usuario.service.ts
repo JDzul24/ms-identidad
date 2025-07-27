@@ -2,6 +2,7 @@ import {
   Inject,
   Injectable,
   UnprocessableEntityException,
+  BadRequestException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as jwt from 'jsonwebtoken';
@@ -22,6 +23,12 @@ export class RegistroUsuarioService {
   public async ejecutar(
     dto: RegistrarUsuarioDto,
   ): Promise<{ id: string; email: string }> {
+    // --- NUEVA VALIDACIÓN ---
+    // Asegurarnos de que los datos esenciales llegaron correctamente.
+    if (!dto || !dto.email || !dto.password || !dto.nombre || !dto.rol) {
+      throw new BadRequestException('Datos de registro incompletos. Por favor, verifica que todos los campos requeridos (email, password, nombre, rol) se están enviando correctamente.');
+    }
+
     // 1. Validar que el email no esté ya en uso.
     const usuarioExistente = await this.usuarioRepositorio.encontrarPorEmail(
       dto.email,
