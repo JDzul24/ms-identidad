@@ -20,6 +20,7 @@ import { PerfilAtletaDominio } from '../../dominio/tipos/tipos-dominio';
 
 type PrismaUsuarioConPerfil = PrismaUser & {
   athleteProfile: PrismaAthlete | null;
+  email_verificado: boolean; // <-- AÑADIR CAMPO FALTANTE AL TIPO
 };
 
 @Injectable()
@@ -132,6 +133,7 @@ export class PrismaGimnasioRepositorio implements IGimnasioRepositorio {
       createdAt: usuarioDb.createdAt,
       perfilAtleta: perfilAtletaDominio,
       gimnasio: null,
+      emailVerificado: usuarioDb.email_verificado,
     });
   }
 }
