@@ -51,4 +51,6 @@ export interface IUsuarioRepositorio {
    * @param gymId El ID del gimnasio al que se asociará.
    */
   asociarAGimnasio(usuarioId: string, gymId: string): Promise<void>;
+
+  marcarComoVerificado(id: string): Promise<void>;
 }

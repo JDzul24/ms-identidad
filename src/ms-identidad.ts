@@ -12,6 +12,7 @@ import { UsuariosController } from './infraestructura/controladores/usuarios.con
 import { SolicitudesController } from './infraestructura/controladores/solicitudes.controller';
 import { AtletasController } from './infraestructura/controladores/atletas.controller';
 import { GimnasiosController } from './infraestructura/controladores/gimnasios.controller';
+import { ConfirmacionEmailController } from './infraestructura/controladores/confirmacion-email.controller';
 
 // --- Servicios de Aplicación ---
 import { AuthService } from './aplicacion/servicios/auth.service';
@@ -24,6 +25,8 @@ import { ObtenerClaveGimnasioService } from './aplicacion/servicios/obtener-clav
 import { VincularGimnasioService } from './aplicacion/servicios/vincular-gimnasio.service';
 import { ModificarClaveGimnasioService } from './aplicacion/servicios/modificar-clave-gimnasio.service';
 import { SincronizarUsuarioService } from './aplicacion/servicios/sincronizar-usuario.service';
+import { EmailService } from './aplicacion/servicios/email.service';
+import { ConfirmacionEmailService } from './aplicacion/servicios/confirmacion-email.service';
 
 // --- Manejadores de Eventos ---
 import { ManejadorAtletaAprobado } from './aplicacion/manejadores/manejador-atleta-aprobado';
@@ -67,6 +70,7 @@ import { NestjsEventEmitter } from './infraestructura/eventos/nestjs-event-emitt
     SolicitudesController,
     AtletasController,
     GimnasiosController,
+    ConfirmacionEmailController,
   ],
   providers: [
     // Servicios de Aplicación
@@ -80,6 +84,8 @@ import { NestjsEventEmitter } from './infraestructura/eventos/nestjs-event-emitt
     VincularGimnasioService, 
     ModificarClaveGimnasioService,
     SincronizarUsuarioService,
+    EmailService,
+    ConfirmacionEmailService,
 
     // Manejadores de Eventos
     ManejadorAtletaAprobado,

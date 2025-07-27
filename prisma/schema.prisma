@@ -24,6 +24,7 @@ model User {
   fcm_token               String?   @db.Text
   name                    String
   role                    UserRole
+  email_verificado        Boolean   @default(false) @map("email_verificado")
   createdAt               DateTime  @default(now()) @map("created_at")
 
   // Relaciones

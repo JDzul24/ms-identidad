@@ -3,15 +3,20 @@ import {
   Injectable,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import * as jwt from 'jsonwebtoken';
 import { RegistrarUsuarioDto } from '../../infraestructura/dtos/registrar-usuario.dto';
 import { IUsuarioRepositorio } from '../../dominio/repositorios/usuario.repositorio';
 import { Usuario } from '../../dominio/entidades/usuario.entity';
+import { EmailService } from './email.service';
 
 @Injectable()
 export class RegistroUsuarioService {
   constructor(
     @Inject('IUsuarioRepositorio')
     private readonly usuarioRepositorio: IUsuarioRepositorio,
+    private readonly emailService: EmailService,
+    private readonly configService: ConfigService,
   ) {}
 
   public async ejecutar(
@@ -38,8 +43,15 @@ export class RegistroUsuarioService {
     // 3. Persistir el nuevo usuario en la base de datos.
     const usuarioGuardado = await this.usuarioRepositorio.guardar(nuevoUsuario);
 
-    // La lógica de asociación a gimnasio y creación de solicitud se ha movido
-    // a un nuevo servicio de vinculación post-login.
+    // 4. Generar token de confirmación y enviar correo.
+    const secret = this.configService.get<string>('EMAIL_CONFIRMATION_SECRET');
+    const token = jwt.sign({ email: usuarioGuardado.email }, secret, { expiresIn: '1h' });
+    
+    // Generar un token numérico de 6 dígitos para el usuario
+    const tokenNumerico = Math.floor(100000 + Math.random() * 900000).toString();
+
+    await this.emailService.sendConfirmationEmail(usuarioGuardado.email, tokenNumerico);
+
 
     return {
       id: usuarioGuardado.id,

@@ -15,6 +15,7 @@ export class Usuario {
   readonly createdAt: Date;
   public perfilAtleta: PerfilAtletaDominio | null;
   public gimnasio: GimnasioDominio | null;
+  private emailVerificado: boolean;
 
   private constructor(props: {
     id: string;
@@ -27,6 +28,7 @@ export class Usuario {
     createdAt: Date;
     perfilAtleta: PerfilAtletaDominio | null;
     gimnasio: GimnasioDominio | null;
+    emailVerificado: boolean;
   }) {
     this.id = props.id;
     this.email = props.email;
@@ -38,6 +40,7 @@ export class Usuario {
     this.createdAt = props.createdAt;
     this.perfilAtleta = props.perfilAtleta;
     this.gimnasio = props.gimnasio;
+    this.emailVerificado = props.emailVerificado;
   }
 
   public static async crear(props: {
@@ -61,6 +64,7 @@ export class Usuario {
       createdAt: new Date(),
       perfilAtleta: null,
       gimnasio: null,
+      emailVerificado: false, // Los nuevos usuarios no están verificados
     });
   }
 
@@ -86,6 +90,7 @@ export class Usuario {
       createdAt: new Date(),
       perfilAtleta: null,
       gimnasio: null,
+      emailVerificado: true, // Los usuarios sincronizados se asumen verificados
     });
   }
 
@@ -100,8 +105,13 @@ export class Usuario {
     createdAt: Date;
     perfilAtleta: PerfilAtletaDominio | null;
     gimnasio: GimnasioDominio | null;
+    emailVerificado: boolean;
   }): Usuario {
     return new Usuario(props);
+  }
+
+  public estaVerificado(): boolean {
+    return this.emailVerificado;
   }
 
   public obtenerPasswordHash(): string | null {

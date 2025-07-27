@@ -33,6 +33,9 @@ export class AuthService {
   ): Promise<Usuario | null> {
     const usuario = await this.usuarioRepositorio.encontrarPorEmail(email);
     if (usuario && (await bcrypt.compare(pass, usuario.obtenerPasswordHash()))) {
+      if (!usuario.estaVerificado()) {
+        throw new UnauthorizedException('Por favor, confirma tu correo electrónico para iniciar sesión.');
+      }
       return usuario;
     }
     return null;

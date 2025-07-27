@@ -127,6 +127,13 @@ export class PrismaUsuarioRepositorio implements IUsuarioRepositorio {
     });
   }
 
+  public async marcarComoVerificado(id: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id },
+      data: { email_verificado: true },
+    });
+  }
+
   private mapearADominio(usuarioDb: UsuarioConPerfilCompleto): Usuario {
     let perfilAtletaDominio: PerfilAtletaDominio | null = null;
     if (usuarioDb.athleteProfile) {
@@ -162,6 +169,7 @@ export class PrismaUsuarioRepositorio implements IUsuarioRepositorio {
       createdAt: usuarioDb.createdAt,
       perfilAtleta: perfilAtletaDominio,
       gimnasio: gimnasioDominio,
+      emailVerificado: usuarioDb.email_verificado,
     });
   }
 }
