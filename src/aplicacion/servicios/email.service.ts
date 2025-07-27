@@ -42,8 +42,10 @@ export class EmailService {
       });
     } catch (error) {
       console.error('Error enviando correo de confirmación:', error);
+      // MODIFICACIÓN: Incluir el mensaje de error original para una mejor depuración.
+      const errorMessage = error.message || 'Error desconocido de la API de Resend.';
       throw new InternalServerErrorException(
-        'No se pudo enviar el correo de confirmación.',
+        `Error al intentar enviar el correo de confirmación. Detalle del proveedor: ${errorMessage}`,
       );
     }
   }
