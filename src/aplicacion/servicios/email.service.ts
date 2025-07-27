@@ -34,9 +34,15 @@ export class EmailService {
         subject: 'Confirma tu cuenta en CapBox',
         html: `
           <h1>Bienvenido a CapBox!</h1>
-          <p>Gracias por registrarte. Por favor, confirma tu cuenta haciendo clic en el siguiente enlace:</p>
+          <p>Gracias por registrarte. Para confirmar tu cuenta, puedes hacer clic en el enlace de abajo o usar el token directamente en la aplicación.</p>
+          
+          <h2>Tu Token de Confirmación:</h2>
+          <p style="font-size: 24px; font-weight: bold; letter-spacing: 2px; background-color: #f0f0f0; padding: 10px; border-radius: 5px; text-align: center;">${token}</p>
+
+          <p>O haz clic en el siguiente enlace:</p>
           <a href="${confirmationLink}">Confirmar mi cuenta</a>
-          <p>El enlace es válido por 1 hora.</p>
+          
+          <p>El enlace y el token son válidos por 1 hora.</p>
           <p>Si no te registraste, por favor ignora este correo.</p>
         `,
       });
