@@ -47,10 +47,14 @@ model User {
 }
 
 model Gym {
-  id      String @id @db.Char(36)
-  ownerId String @unique @db.Char(36)
-  name    String
-  gymKey  String @unique @map("gym_key")
+  id           String  @id @db.Char(36)
+  ownerId      String  @unique @db.Char(36)
+  name         String
+  size         String? @default("mediano")
+  totalBoxers  Int?    @default(0) @map("total_boxers")
+  location     String?
+  imageUrl     String? @map("image_url")
+  gymKey       String  @unique @map("gym_key")
 
   owner   User              @relation("OwnerToGym", fields: [ownerId], references: [id])
   members UserGymRelation[]

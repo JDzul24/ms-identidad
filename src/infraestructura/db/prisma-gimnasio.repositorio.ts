@@ -97,11 +97,72 @@ export class PrismaGimnasioRepositorio implements IGimnasioRepositorio {
     return gymDb ? this.mapearGimnasioADominio(gymDb) : null;
   }
 
+  // Métodos para gestión interna de gimnasios
+  public async obtenerTodos(): Promise<Gimnasio[]> {
+    const gymsDb = await this.prisma.gym.findMany();
+    return gymsDb.map(gym => this.mapearGimnasioADominio(gym));
+  }
+
+  public async encontrarPorId(id: string): Promise<Gimnasio | null> {
+    const gymDb = await this.prisma.gym.findUnique({
+      where: { id: id },
+    });
+    return gymDb ? this.mapearGimnasioADominio(gymDb) : null;
+  }
+
+  public async guardar(gimnasio: Gimnasio): Promise<Gimnasio> {
+    const gymData = {
+      id: gimnasio.id,
+      ownerId: gimnasio.ownerId,
+      name: gimnasio.nombre,
+      size: gimnasio.tamaño,
+      totalBoxers: gimnasio.totalBoxeadores,
+      location: gimnasio.ubicacion,
+      imageUrl: gimnasio.imagenUrl,
+      gymKey: gimnasio.gymKey,
+    };
+
+    const gymDb = await this.prisma.gym.upsert({
+      where: { id: gimnasio.id },
+      update: gymData,
+      create: gymData,
+    });
+
+    return this.mapearGimnasioADominio(gymDb);
+  }
+
+  public async obtenerUsuariosAsociados(gymId: string): Promise<Usuario[]> {
+    const relaciones = await this.prisma.userGymRelation.findMany({
+      where: { gymId: gymId },
+      include: {
+        user: {
+          include: {
+            athleteProfile: true,
+          },
+        },
+      },
+    });
+
+    return relaciones.map((rel) =>
+      this.mapearUsuarioADominio(rel.user as PrismaUsuarioConPerfil),
+    );
+  }
+
+  public async eliminar(id: string): Promise<void> {
+    await this.prisma.gym.delete({
+      where: { id: id },
+    });
+  }
+
   private mapearGimnasioADominio(persistencia: PrismaGym): Gimnasio {
     return Gimnasio.desdePersistencia({
       id: persistencia.id,
       ownerId: persistencia.ownerId,
       name: persistencia.name,
+      size: persistencia.size,
+      totalBoxers: persistencia.totalBoxers,
+      location: persistencia.location,
+      imageUrl: persistencia.imageUrl,
       gymKey: persistencia.gymKey,
     });
   }
