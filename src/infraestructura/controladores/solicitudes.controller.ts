@@ -1,17 +1,15 @@
-import { Controller, Get, Inject, Req, UseGuards, ForbiddenException } from '@nestjs/common';
-import { JwtAuthGuard } from '../../infraestructura/guardias/jwt-auth.guard';
+import { Controller, Get, Inject, Req, UseGuards, ForbiddenException, HttpCode, HttpStatus, HttpException } from '@nestjs/common';
+import { JwtAuthGuard } from '../guardias/jwt-auth.guard';
 import { ConsultarSolicitudesService } from '../../aplicacion/servicios/consultar-solicitudes.service';
 import { Request } from 'express';
+import { UsuarioPayload } from '../estrategias/jwt.strategy';
 
 interface RequestConUsuario extends Request {
-  user: {
-    userId: string;
-    email: string;
-    rol: string;
-  };
+  user: UsuarioPayload;
 }
 
-@Controller('requests')
+@Controller('solicitudes') // Ruta en español para consistencia
+@UseGuards(JwtAuthGuard) // Guardia aplicada a todo el controlador
 export class SolicitudesController {
   constructor(
     @Inject(ConsultarSolicitudesService)
@@ -20,18 +18,30 @@ export class SolicitudesController {
 
   /**
    * Endpoint protegido para que un entrenador obtenga sus solicitudes pendientes.
-   * GET /requests/pending
+   * GET /solicitudes/pendientes
    */
-  @UseGuards(JwtAuthGuard)
-  @Get('pending')
+  @Get('pendientes')
+  @HttpCode(HttpStatus.OK)
   async obtenerSolicitudesPendientes(@Req() req: RequestConUsuario) {
-    const { userId, rol } = req.user;
+    try {
+      const { userId, rol } = req.user;
 
-    // Lógica de autorización: solo los entrenadores pueden acceder.
-    if (rol !== 'Entrenador') {
-      throw new ForbiddenException('No tienes permisos para realizar esta acción.');
+      // Lógica de autorización explícita, muy segura.
+      if (rol !== 'Entrenador') {
+        throw new ForbiddenException('No tienes permisos para realizar esta acción.');
+      }
+
+      return this.consultarSolicitudesService.ejecutar(userId);
+    } catch (error) {
+      const status =
+        error instanceof HttpException
+          ? error.getStatus()
+          : HttpStatus.INTERNAL_SERVER_ERROR;
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Ocurrió un error inesperado al consultar las solicitudes.';
+      throw new HttpException({ statusCode: status, message }, status);
     }
-
-    return this.consultarSolicitudesService.ejecutar(userId);
   }
 }

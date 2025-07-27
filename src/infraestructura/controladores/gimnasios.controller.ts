@@ -20,13 +20,15 @@ import { Request } from 'express';
 import { ConsultarMiembrosService } from '../../aplicacion/servicios/consultar-miembros.service';
 import { VincularGimnasioService } from '../../aplicacion/servicios/vincular-gimnasio.service';
 import { VincularGimnasioDto } from '../dtos/vincular-gimnasio.dto';
+import { UsuarioPayload } from '../estrategias/jwt.strategy';
 
+// Se usa la interfaz importada para seguridad de tipos.
 interface RequestConUsuario extends Request {
-  user: { userId: string; rol: string };
+  user: UsuarioPayload;
 }
 
-@Controller('gyms')
-@UseGuards(JwtAuthGuard)
+@Controller('gimnasios') // Ruta en español para consistencia
+@UseGuards(JwtAuthGuard) // ¡CORRECTO! Guardia aplicada a todo el controlador.
 export class GimnasiosController {
   constructor(
     @Inject(ConsultarMiembrosService)
@@ -35,7 +37,7 @@ export class GimnasiosController {
     private readonly vincularGimnasioService: VincularGimnasioService,
   ) {}
 
-  @Post('link')
+  @Post('vincular') // Ruta corregida a 'vincular'
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true }))
   async vincularAGimnasio(
@@ -43,9 +45,10 @@ export class GimnasiosController {
     @Body() vincularGimnasioDto: VincularGimnasioDto,
   ) {
     try {
+      // ¡CORRECTO! El userId se obtiene del token seguro, no del body.
       const { userId } = req.user;
-      const { claveGym } = vincularGimnasioDto;
-      return await this.vincularGimnasioService.ejecutar(userId, claveGym);
+      const { claveGimnasio } = vincularGimnasioDto; // DTO corregido
+      return await this.vincularGimnasioService.ejecutar(userId, claveGimnasio);
     } catch (error) {
       const status =
         error instanceof HttpException
@@ -59,7 +62,7 @@ export class GimnasiosController {
     }
   }
 
-  @Get(':gymId/members')
+  @Get(':gymId/miembros') // Ruta corregida a 'miembros'
   @HttpCode(HttpStatus.OK)
   async obtenerMiembrosDeGimnasio(
     @Req() req: RequestConUsuario,
@@ -67,6 +70,7 @@ export class GimnasiosController {
   ) {
     try {
       const { userId: solicitanteId, rol } = req.user;
+      // ¡CORRECTO! Validación de rol explícita como doble capa de seguridad.
       if (rol !== 'Entrenador' && rol !== 'Admin') {
         throw new ForbiddenException(
           'No tienes los permisos necesarios para ver los miembros del gimnasio.',

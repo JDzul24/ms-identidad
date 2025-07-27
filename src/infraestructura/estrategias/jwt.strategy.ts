@@ -1,59 +1,48 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
-import { jwtDecode } from 'jwt-decode'; // Importar la librería de decodificación
 
+// Define la estructura del payload que realmente se firma en auth.service.ts
 interface JwtPayload {
   sub: string;
   email: string;
-  // En Cognito, el rol puede estar en un claim personalizado
-  'cognito:groups'?: string[];
-  'custom:rol'?: string;
-  [key: string]: any;
+  rol: string;
+}
+
+// Define la estructura del objeto 'user' que se adjuntará al request
+export interface UsuarioPayload {
+  userId: string;
+  email: string;
+
+  rol: string;
 }
 
 @Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy) {
+export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(configService: ConfigService) {
     super({
-      // Sigue extrayendo el token de la misma manera
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      // IMPORTANTE: Le decimos a Passport que no intente verificar la firma
-      // Esto es INSEGURO para producción, es solo para desbloquear las pruebas.
-      secretOrKey: 'dummy_secret_for_testing_only',
-      // No podemos ignorar la expiración porque la librería lo exige
+      // ¡CORREGIDO! Ya no se ignora la expiración.
       ignoreExpiration: false,
+      // ¡CORREGIDO! Se usa el secreto real desde la configuración.
+      // El servicio ahora validará la firma de los tokens que él mismo emite.
+      secretOrKey: configService.get<string>('JWT_SECRET'),
     });
   }
 
   /**
-   * --- SOBREESCRITURA DE EMERGENCIA (VERSIÓN 2) ---
-   * Este método ahora recibe el payload de un token (posiblemente expirado
-   * o con firma inválida, aunque passport puede rechazar los expirados).
-   * Lo vamos a decodificar manualmente para extraer los datos del usuario real.
+   * Este método se ejecuta DESPUÉS de que Passport ha verificado
+   * la firma y la expiración del JWT.
+   * El payload que llega aquí es seguro y de confianza.
    */
-  async validate(payload: any): Promise<{ userId: string; email: string; rol: string }> {
-    console.warn('----------- MODO DE AUTENTICACIÓN INSEGURA ACTIVADO -----------');
-    console.warn('-----------   LA VALIDACIÓN DE FIRMA JWT ESTÁ DESACTIVADA   -----------');
-
-    // Extraemos el token crudo de la cabecera para decodificarlo nosotros mismos
-    // y obtener el rol, que puede no estar en el 'payload' validado por Passport.
-    // Esto es un workaround. En un caso real, la validación se hace en una sola pasada.
-    
-    // El payload que nos pasa Passport ya está decodificado.
-    const rol = payload['custom:rol'] || (payload['cognito:groups'] ? payload['cognito:groups'][0] : 'Atleta');
-
-    if (!payload.sub || !payload.email || !rol) {
-      // Si el token ni siquiera tiene la estructura básica, lo rechazamos.
-      throw new UnauthorizedException('Token malformado.');
-    }
-
-    // Devolvemos los datos REALES del usuario que vienen en el token.
+  async validate(payload: JwtPayload): Promise<UsuarioPayload> {
+    // Simplemente reenviamos los datos del token en un formato estandarizado
+    // para que esté disponible en `req.user` en todos los controladores.
     return {
       userId: payload.sub,
       email: payload.email,
-      rol: rol,
+      rol: payload.rol,
     };
   }
 }

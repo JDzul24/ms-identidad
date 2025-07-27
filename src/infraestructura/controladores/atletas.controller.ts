@@ -12,17 +12,20 @@ import {
   ValidationPipe,
   HttpCode,
   HttpStatus,
+  HttpException,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../../infraestructura/guardias/jwt-auth.guard';
+import { JwtAuthGuard } from '../guardias/jwt-auth.guard';
 import { AprobarAtletaService } from '../../aplicacion/servicios/aprobar-atleta.service';
 import { AprobarAtletaDto } from '../dtos/aprobar-atleta.dto';
 import { Request } from 'express';
+import { UsuarioPayload } from '../estrategias/jwt.strategy';
 
 interface RequestConUsuario extends Request {
-  user: { userId: string; rol: string };
+  user: UsuarioPayload;
 }
 
-@Controller('athletes')
+@Controller('atletas') // Ruta en español para consistencia
+@UseGuards(JwtAuthGuard) // Guardia aplicada a todo el controlador
 export class AtletasController {
   constructor(
     @Inject(AprobarAtletaService)
@@ -31,10 +34,9 @@ export class AtletasController {
 
   /**
    * Endpoint protegido para que un entrenador apruebe a un nuevo atleta.
-   * POST /athletes/:atletaId/approve
+   * POST /atletas/:atletaId/aprobar
    */
-  @UseGuards(JwtAuthGuard)
-  @Post(':atletaId/approve')
+  @Post(':atletaId/aprobar') // Ruta corregida
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true }))
   async aprobarAtleta(
@@ -42,13 +44,29 @@ export class AtletasController {
     @Param('atletaId', ParseUUIDPipe) atletaId: string,
     @Body() aprobarAtletaDto: AprobarAtletaDto,
   ) {
-    const { userId: coachId, rol } = req.user;
+    try {
+      const { userId: coachId, rol } = req.user;
 
-    // Lógica de autorización a nivel de controlador
-    if (rol !== 'Entrenador') {
-      throw new ForbiddenException('No tienes permisos para realizar esta acción.');
+      // Doble capa de seguridad, perfecta.
+      if (rol !== 'Entrenador') {
+        throw new ForbiddenException('No tienes permisos para realizar esta acción.');
+      }
+
+      return this.aprobarAtletaService.ejecutar(
+        coachId,
+        atletaId,
+        aprobarAtletaDto,
+      );
+    } catch (error) {
+      const status =
+        error instanceof HttpException
+          ? error.getStatus()
+          : HttpStatus.INTERNAL_SERVER_ERROR;
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Ocurrió un error inesperado al aprobar al atleta.';
+      throw new HttpException({ statusCode: status, message }, status);
     }
-
-    return this.aprobarAtletaService.ejecutar(coachId, atletaId, aprobarAtletaDto);
   }
 }

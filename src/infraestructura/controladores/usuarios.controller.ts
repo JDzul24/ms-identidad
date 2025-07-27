@@ -1,10 +1,7 @@
 import {
   Controller,
   Get,
-  Post, // Se añade Post
   Inject,
-  Param,
-  ParseUUIDPipe,
   Req,
   UseGuards,
   ForbiddenException,
@@ -14,6 +11,8 @@ import {
   ValidationPipe,
   HttpCode,
   HttpStatus,
+  HttpException,
+  Post,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../guardias/jwt-auth.guard';
 import { PerfilUsuarioService } from '../../aplicacion/servicios/perfil-usuario.service';
@@ -21,15 +20,16 @@ import { Request } from 'express';
 import { ObtenerClaveGimnasioService } from '../../aplicacion/servicios/obtener-clave-gimnasio.service';
 import { ModificarClaveGimnasioService } from '../../aplicacion/servicios/modificar-clave-gimnasio.service';
 import { ModificarClaveGimnasioDto } from '../dtos/modificar-clave-gimnasio.dto';
-import { SincronizarUsuarioService } from '../../aplicacion/servicios/sincronizar-usuario.service'; // Se importa el nuevo servicio
+import { SincronizarUsuarioService } from '../../aplicacion/servicios/sincronizar-usuario.service';
+import { UsuarioPayload } from '../estrategias/jwt.strategy';
 import { RolUsuario } from '../../dominio/entidades/usuario.entity';
 
 interface RequestConUsuario extends Request {
-  user: { userId: string; email: string; nombre: string; rol: RolUsuario }; // 'nombre' se necesita para el sync
+  user: UsuarioPayload & { nombre: string };
 }
 
-@Controller('users')
-@UseGuards(JwtAuthGuard)
+@Controller('usuarios') // Ruta estandarizada a 'usuarios'
+@UseGuards(JwtAuthGuard) // Guardia aplicada a todo el controlador
 export class UsuariosController {
   constructor(
     @Inject(PerfilUsuarioService)
@@ -38,64 +38,74 @@ export class UsuariosController {
     private readonly obtenerClaveGimnasioService: ObtenerClaveGimnasioService,
     @Inject(ModificarClaveGimnasioService)
     private readonly modificarClaveGimnasioService: ModificarClaveGimnasioService,
-    // Se inyecta el nuevo servicio de sincronización
     @Inject(SincronizarUsuarioService)
     private readonly sincronizarUsuarioService: SincronizarUsuarioService,
   ) {}
 
-  /**
-   * Endpoint para que el frontend sincronice el usuario de Cognito
-   * con la base de datos local después del primer login.
-   * POST /users/sync
-   */
-  @Post('sync')
-  @HttpCode(HttpStatus.OK)
-  async sincronizarUsuario(@Req() req: RequestConUsuario) {
-    const { userId, email, nombre, rol } = req.user;
-    // La guardia ya validó el token. Simplemente pasamos los datos al servicio.
-    return this.sincronizarUsuarioService.ejecutar({
-      id: userId,
-      email,
-      nombre,
-      rol,
-    });
-  }
-
   @Get('me')
+  @HttpCode(HttpStatus.OK)
   async obtenerMiPerfil(@Req() req: RequestConUsuario) {
-    const usuarioId = req.user.userId;
-    return this.perfilUsuarioService.ejecutar(usuarioId);
+    try {
+      const { userId } = req.user;
+      return this.perfilUsuarioService.ejecutar(userId);
+    } catch (error) {
+      const status = error instanceof HttpException ? error.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+      const message = error instanceof Error ? error.message : 'Error al obtener el perfil.';
+      throw new HttpException({ statusCode: status, message }, status);
+    }
   }
 
-  @Get('me/gym/key')
+  @Get('gimnasio/clave')
   @HttpCode(HttpStatus.OK)
   async obtenerMiClaveDeGimnasio(@Req() req: RequestConUsuario) {
-    const { userId: solicitanteId, rol } = req.user;
-    if (rol !== 'Entrenador' && rol !== 'Admin') {
-      throw new ForbiddenException('Acción no permitida.');
+    try {
+      const { userId, rol } = req.user;
+      if (rol !== 'Entrenador' && rol !== 'Admin') {
+        throw new ForbiddenException('No tienes permisos para ver la clave del gimnasio.');
+      }
+      return this.obtenerClaveGimnasioService.ejecutar(userId, rol as RolUsuario);
+    } catch (error) {
+      const status = error instanceof HttpException ? error.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+      const message = error instanceof Error ? error.message : 'Error al obtener la clave.';
+      throw new HttpException({ statusCode: status, message }, status);
     }
-    return this.obtenerClaveGimnasioService.ejecutar(solicitanteId, rol);
   }
 
-  @Patch('me/gym/key')
+  @Patch('gimnasio/clave')
   @HttpCode(HttpStatus.OK)
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
   async modificarMiClaveDeGimnasio(
     @Req() req: RequestConUsuario,
     @Body() dto: ModificarClaveGimnasioDto,
   ) {
-    const { userId: solicitanteId, rol } = req.user;
-    if (rol !== 'Admin') {
-      throw new ForbiddenException('Acción no permitida.');
+    try {
+      const { userId, rol } = req.user;
+      if (rol !== 'Admin') {
+        throw new ForbiddenException('Solo los administradores pueden cambiar la clave del gimnasio.');
+      }
+      return this.modificarClaveGimnasioService.ejecutar(userId, dto.nuevaClave);
+    } catch (error) {
+      const status = error instanceof HttpException ? error.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+      const message = error instanceof Error ? error.message : 'Error al modificar la clave.';
+      throw new HttpException({ statusCode: status, message }, status);
     }
-    return this.modificarClaveGimnasioService.ejecutar(solicitanteId, dto.nuevaClave);
   }
   
-  @Get(':id')
-  async obtenerPerfilPorId(
-    @Req() req: RequestConUsuario,
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
-    return this.perfilUsuarioService.ejecutar(id);
+  @Post('sync')
+  @HttpCode(HttpStatus.OK)
+  async sincronizarUsuario(@Req() req: RequestConUsuario) {
+    try {
+      const { userId, email, nombre, rol } = req.user;
+      return this.sincronizarUsuarioService.ejecutar({
+        id: userId,
+        email,
+        nombre,
+        rol: rol as RolUsuario,
+      });
+    } catch (error) {
+      const status = error instanceof HttpException ? error.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+      const message = error instanceof Error ? error.message : 'Error al sincronizar el usuario.';
+      throw new HttpException({ statusCode: status, message }, status);
+    }
   }
 }
