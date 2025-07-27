@@ -3,6 +3,7 @@ import {
   Injectable,
   UnprocessableEntityException,
   BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as jwt from 'jsonwebtoken';
@@ -52,13 +53,19 @@ export class RegistroUsuarioService {
 
     // 4. Generar token de confirmación y enviar correo.
     const secret = this.configService.get<string>('EMAIL_CONFIRMATION_SECRET');
-    const token = jwt.sign({ email: usuarioGuardado.email }, secret, { expiresIn: '1h' });
-    
-    // Generar un token numérico de 6 dígitos para el usuario
-    const tokenNumerico = Math.floor(100000 + Math.random() * 900000).toString();
+    if (!secret) {
+      // Esta es la causa más probable del error 500.
+      throw new InternalServerErrorException(
+        'Error del servidor: La clave para la confirmación por correo no está configurada.',
+      );
+    }
 
-    await this.emailService.sendConfirmationEmail(usuarioGuardado.email, tokenNumerico);
+    const token = jwt.sign({ email: usuarioGuardado.email }, secret, {
+      expiresIn: '1h',
+    });
 
+    // Se corrige el error: se debe enviar el token JWT, no uno numérico.
+    await this.emailService.sendConfirmationEmail(usuarioGuardado.email, token);
 
     return {
       id: usuarioGuardado.id,
