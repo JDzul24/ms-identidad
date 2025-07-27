@@ -1,0 +1,173 @@
+# Guía Definitiva de Integración para Frontend (Flutter) - API CapBox
+
+Hola equipo de frontend,
+
+Esta guía detalla el flujo **final y funcional** de registro y confirmación de usuarios. El sistema ahora utiliza un **código numérico de 6 dígitos** enviado por correo, que es mucho más amigable para una aplicación móvil.
+
+---
+
+## 1. Flujo Completo de Registro y Confirmación (Versión Final)
+
+Este es el proceso completo que el usuario debe seguir para crear y activar su cuenta.
+
+### **Paso A: Registro de Nuevo Usuario**
+
+El usuario llena el formulario de registro en la app.
+
+- **Endpoint:** `POST https://api.capbox.site/identity/v1/auth/register`
+- **Método:** `POST`
+- **Headers:**
+  - `Content-Type`: `application/json`
+
+- **Cuerpo de la Petición (Body):**
+  Todos los campos son **obligatorios**.
+
+  ```json
+  {
+    "email": "usuario.nuevo@example.com",
+    "password": "una-contraseña-segura-123",
+    "nombre": "Nombre Apellido",
+    "rol": "ATLETA"
+  }
+  ```
+
+- **Detalle de Campos:**
+  - `email` (String): Debe ser un correo electrónico válido.
+  - `password` (String): La contraseña elegida por el usuario.
+  - `nombre` (String): Nombre completo del usuario.
+  - `rol` (String): Define el tipo de usuario. Debe ser uno de los siguientes valores exactos:
+    - `"ADMIN"`
+    - `"ENTRENADOR"`
+    - `"ATLETA"`
+
+- **Respuesta de Éxito (`201 Created`):**
+  El usuario fue creado en la base de datos y se ha enviado un correo de confirmación con un código de 6 dígitos.
+    ```json
+    {
+      "id": "clxyz...",
+      "email": "usuario.nuevo@example.com"
+    }
+    ```
+  *(En este punto, deben redirigir al usuario a una nueva pantalla para que ingrese el código que recibió en su correo).*
+
+### **Paso B: Confirmación con Código de 6 Dígitos**
+
+El usuario revisa su correo, obtiene el código y lo ingresa en la app.
+
+1.  **Acción del Usuario:** El usuario abre su correo y ve un mensaje como este:
+    > **Tu código de confirmación para CapBox**
+    >
+    > Usa el siguiente código para confirmar tu cuenta:
+    >
+    > **123456**
+    >
+    > El código es válido por 15 minutos.
+
+2.  **Acción del Frontend (Flutter):** El usuario ingresa "123456" en un campo de texto en su aplicación.
+
+3.  **Llamada a la API para confirmar:** Una vez que tienen el código, deben enviarlo al backend.
+
+- **Endpoint:** `POST https://api.capbox.site/identity/v1/auth/confirm-email`
+- **Método:** `POST`
+- **Headers:**
+  - `Content-Type`: `application/json`
+
+- **Cuerpo de la Petición (Body):**
+  ```json
+  {
+    "token": "123456" 
+  }
+  ```
+  *(El campo se sigue llamando "token" por consistencia, pero ahora contiene el código de 6 dígitos).*
+
+- **Posibles Respuestas del Servidor:**
+  - **Éxito (`200 OK`):** La cuenta ha sido verificada.
+    ```json
+    {
+      "message": "Correo electrónico verificado con éxito. Ya puedes iniciar sesión."
+    }
+    ```
+    *(Ahora pueden redirigir al usuario a la pantalla de inicio de sesión).*
+
+  - **Error (`401 Unauthorized`):** El código es incorrecto o ha expirado (después de 15 minutos).
+    ```json
+    {
+      "message": "Token de confirmación inválido o expirado.",
+      "statusCode": 401
+    }
+    ```
+
+---
+
+## 2. Flujo de Inicio de Sesión
+
+Una vez que la cuenta está confirmada, el usuario puede iniciar sesión.
+
+**⚠️ IMPORTANTE: URL CORRECTA PARA LOGIN**
+El frontend debe usar exactamente esta URL: `https://api.capbox.site/identity/v1/oauth/token`
+NO usar: `https://api.capbox.site/oauth/token` (esto causará error 404)
+
+- **Endpoint:** `POST https://api.capbox.site/identity/v1/oauth/token`
+- **Método:** `POST`
+- **Headers:**
+  - `Content-Type`: `application/json`
+
+- **Cuerpo de la Petición (Body):**
+  ```json
+  {
+    "grant_type": "password",
+    "client_id": "capbox-mobile-app",
+    "client_secret": "capbox-secret-key-2024",
+    "username": "usuario.nuevo@example.com",
+    "password": "una-contraseña-segura-123"
+  }
+  ```
+  *(El campo `username` corresponde al `email` del usuario).*
+
+- **Respuesta de Éxito (`200 OK`):**
+  ```json
+  {
+    "access_token": "UN_TOKEN_JWT_CORTO_PARA_USAR_EN_PETICIONES",
+    "refresh_token": "UN_TOKEN_JWT_LARGO_PARA_GUARDAR_Y_RENOVAR_SESION"
+  }
+  ```
+  *(Deben guardar ambos tokens de forma segura en el dispositivo).*
+
+---
+
+## 3. Checklist y Errores Comunes
+
+- **Serialización de Datos:** Asegúrense de que los nombres de campo en el JSON sean exactos (`email`, `password`, `nombre`, `rol`, `token`).
+- **Headers:** Todas las peticiones `POST` deben llevar la cabecera `Content-Type: application/json`.
+- **Valores de `rol`:** Los valores deben ser exactos y en mayúsculas: `"ADMIN"`, `"ENTRENADOR"`, `"ATLETA"`.
+- **Manejo de Errores:**
+  - `400 Bad Request`: Datos de registro incompletos.
+  - `422 Unprocessable Content`: El correo ya está en uso.
+  - `401 Unauthorized`: El código de confirmación es incorrecto/expirado, o las credenciales de login son inválidas.
+
+¡El backend está listo y probado con este nuevo flujo! Avísenos si tienen alguna pregunta.
+
+---
+
+## 4. Troubleshooting - Errores Comunes
+
+### **Error 404 en /oauth/token**
+- **Causa:** URL incorrecta
+- **Solución:** Usar `https://api.capbox.site/identity/v1/oauth/token` (NO `/oauth/token`)
+
+### **Error CORS**
+- **Causa:** El frontend está usando una URL incorrecta
+- **Solución:** Verificar que la URL incluya `/identity/v1/`
+
+### **Error 401 "Cliente inválido"**
+- **Causa:** `client_id` o `client_secret` incorrectos
+- **Solución:** Usar exactamente:
+  - `client_id`: `"capbox-mobile-app"`
+  - `client_secret`: `"capbox-secret-key-2024"`
+
+### **Error 401 "Credenciales inválidas"**
+- **Causa:** Email o contraseña incorrectos, o usuario no verificado
+- **Solución:** 
+  1. Verificar que el usuario completó la confirmación por email
+  2. Verificar que el email y contraseña son correctos
+  3. Verificar que el campo `username` contiene el email del usuario 
