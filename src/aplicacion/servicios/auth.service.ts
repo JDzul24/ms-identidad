@@ -41,15 +41,17 @@ export class AuthService {
   public async generarTokens(
     usuario: Usuario,
   ): Promise<{ access_token: string; refresh_token: string }> {
-    // Obtener la URL del emisor desde la configuración
     const jwtIssuerUrl = this.configService.get<string>('JWT_ISSUER_URL');
+    // AÑADIDO: Obtener la audiencia desde la configuración
+    const jwtAudience = this.configService.get<string>('JWT_AUDIENCE');
 
     const accessTokenPayload = {
       sub: usuario.id,
       email: usuario.email,
       rol: usuario.rol,
-      // AÑADIDO: Incluir el emisor en el payload del access token
       iss: jwtIssuerUrl,
+      // AÑADIDO: Incluir la audiencia en el payload del access token
+      aud: jwtAudience,
     };
     const refreshTokenPayload = {
       sub: usuario.id,
@@ -112,7 +114,7 @@ export class AuthService {
           'Si existe una cuenta con este correo, se ha enviado un enlace para restablecer la contraseña.',
       };
     }
-    // El token de reseteo no necesita el 'iss' para la validación en el servicio
+    // El token de reseteo no necesita el 'iss' o 'aud' para la validación interna
     const tokenPayload = { sub: usuario.id, type: 'password-reset' };
     const resetToken = this.jwtService.sign(tokenPayload, { expiresIn: '15m' });
     console.log(
