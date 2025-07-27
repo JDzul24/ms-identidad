@@ -19,7 +19,7 @@ export class EmailService {
 
     try {
       await this.resend.emails.send({
-        from: 'CapBox <no-reply@capbox.site>',
+        from: 'onboarding@resend.dev', // <-- CAMBIO CLAVE PARA PRUEBA
         to: [email],
         subject: 'Confirma tu cuenta en CapBox',
         html: `
