@@ -130,8 +130,44 @@ export class PrismaUsuarioRepositorio implements IUsuarioRepositorio {
   public async marcarComoVerificado(id: string): Promise<void> {
     await this.prisma.user.update({
       where: { id },
-      data: { email_verificado: true },
+      data: {
+        email_verificado: true,
+        confirmation_token: null, // Limpiar el token una vez usado
+        confirmation_token_expires_at: null,
+      },
     });
+  }
+
+  public async establecerTokenDeConfirmacion(id: string, token: string, expiresAt: Date): Promise<void> {
+    await this.prisma.user.update({
+      where: { id },
+      data: {
+        confirmation_token: token,
+        confirmation_token_expires_at: expiresAt,
+      },
+    });
+  }
+
+  public async encontrarPorTokenDeConfirmacion(token: string): Promise<Usuario | null> {
+    const usuarioDb = await this.prisma.user.findFirst({
+      where: {
+        confirmation_token: token,
+        confirmation_token_expires_at: {
+          gte: new Date(), // Asegurarse de que el token no haya expirado
+        },
+      },
+      include: {
+        athleteProfile: true,
+        ownedGym: true,
+        gyms: {
+          include: {
+            gym: true,
+          },
+        },
+      },
+    });
+
+    return usuarioDb ? this.mapearADominio(usuarioDb) : null;
   }
 
   private mapearADominio(usuarioDb: UsuarioConPerfilCompleto): Usuario {

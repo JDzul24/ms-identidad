@@ -17,15 +17,17 @@ datasource db {
 // -----------------------------------------------------
 
 model User {
-  id                      String    @id @db.Char(36)
-  email                   String    @unique
-  password_hash           String?
-  refresh_token_hash      String?   @db.Text
-  fcm_token               String?   @db.Text
-  name                    String
-  role                    UserRole
-  email_verificado        Boolean   @default(false) @map("email_verificado")
-  createdAt               DateTime  @default(now()) @map("created_at")
+  id                               String     @id @db.Char(36)
+  email                            String     @unique
+  password_hash                    String?
+  refresh_token_hash               String?    @db.Text
+  fcm_token                        String?    @db.Text
+  name                             String
+  role                             UserRole
+  email_verificado                 Boolean    @default(false) @map("email_verificado")
+  confirmation_token               String?    @map("confirmation_token")
+  confirmation_token_expires_at    DateTime?  @map("confirmation_token_expires_at")
+  createdAt                        DateTime   @default(now()) @map("created_at")
 
   // Relaciones
   ownedGym                Gym?                        @relation("OwnerToGym")

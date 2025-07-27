@@ -51,21 +51,20 @@ export class RegistroUsuarioService {
     // 3. Persistir el nuevo usuario en la base de datos.
     const usuarioGuardado = await this.usuarioRepositorio.guardar(nuevoUsuario);
 
-    // 4. Generar token de confirmación y enviar correo.
-    const secret = this.configService.get<string>('EMAIL_CONFIRMATION_SECRET');
-    if (!secret) {
-      // Esta es la causa más probable del error 500.
-      throw new InternalServerErrorException(
-        'Error del servidor: La clave para la confirmación por correo no está configurada.',
-      );
-    }
+    // 4. Generar token numérico, guardarlo y enviarlo por correo.
+    const tokenNumerico = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // El token expira en 15 minutos
 
-    const token = jwt.sign({ email: usuarioGuardado.email }, secret, {
-      expiresIn: '1h',
-    });
+    await this.usuarioRepositorio.establecerTokenDeConfirmacion(
+      usuarioGuardado.id,
+      tokenNumerico,
+      expiresAt,
+    );
 
-    // Se corrige el error: se debe enviar el token JWT, no uno numérico.
-    await this.emailService.sendConfirmationEmail(usuarioGuardado.email, token);
+    await this.emailService.sendConfirmationEmail(
+      usuarioGuardado.email,
+      tokenNumerico,
+    );
 
     return {
       id: usuarioGuardado.id,

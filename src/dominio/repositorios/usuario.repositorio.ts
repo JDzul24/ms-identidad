@@ -53,4 +53,6 @@ export interface IUsuarioRepositorio {
   asociarAGimnasio(usuarioId: string, gymId: string): Promise<void>;
 
   marcarComoVerificado(id: string): Promise<void>;
+  establecerTokenDeConfirmacion(id: string, token: string, expiresAt: Date): Promise<void>;
+  encontrarPorTokenDeConfirmacion(token: string): Promise<Usuario | null>;
 }

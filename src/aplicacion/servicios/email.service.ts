@@ -31,18 +31,14 @@ export class EmailService {
       await this.resend.emails.send({
         from: 'CapBox <no-reply@capbox.site>',
         to: [email],
-        subject: 'Confirma tu cuenta en CapBox',
+        subject: 'Tu código de confirmación para CapBox',
         html: `
           <h1>Bienvenido a CapBox!</h1>
-          <p>Gracias por registrarte. Para confirmar tu cuenta, puedes hacer clic en el enlace de abajo o usar el token directamente en la aplicación.</p>
+          <p>Gracias por registrarte. Usa el siguiente código para confirmar tu cuenta en la aplicación:</p>
           
-          <h2>Tu Token de Confirmación:</h2>
           <p style="font-size: 24px; font-weight: bold; letter-spacing: 2px; background-color: #f0f0f0; padding: 10px; border-radius: 5px; text-align: center;">${token}</p>
-
-          <p>O haz clic en el siguiente enlace:</p>
-          <a href="${confirmationLink}">Confirmar mi cuenta</a>
           
-          <p>El enlace y el token son válidos por 1 hora.</p>
+          <p>El código es válido por 15 minutos.</p>
           <p>Si no te registraste, por favor ignora este correo.</p>
         `,
       });
