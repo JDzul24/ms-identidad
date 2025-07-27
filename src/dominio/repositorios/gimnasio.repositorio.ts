@@ -40,4 +40,39 @@ export interface IGimnasioRepositorio {
    * @returns Una promesa que resuelve a la entidad Gimnasio si se encuentra, o null en caso contrario.
    */
   encontrarPorOwnerId(ownerId: string): Promise<Gimnasio | null>;
+
+  // Métodos para gestión interna de gimnasios
+  /**
+   * Obtiene todos los gimnasios.
+   * @returns Una promesa que resuelve a un arreglo de entidades Gimnasio.
+   */
+  obtenerTodos(): Promise<Gimnasio[]>;
+
+  /**
+   * Busca un gimnasio por su ID.
+   * @param id - El ID del gimnasio.
+   * @returns Una promesa que resuelve a la entidad Gimnasio o null si no se encuentra.
+   */
+  encontrarPorId(id: string): Promise<Gimnasio | null>;
+
+  /**
+   * Guarda o actualiza un gimnasio.
+   * @param gimnasio - La entidad Gimnasio a guardar.
+   * @returns Una promesa que resuelve a la entidad Gimnasio guardada.
+   */
+  guardar(gimnasio: Gimnasio): Promise<Gimnasio>;
+
+  /**
+   * Obtiene los usuarios asociados a un gimnasio.
+   * @param gymId - El ID del gimnasio.
+   * @returns Una promesa que resuelve a un arreglo de entidades Usuario.
+   */
+  obtenerUsuariosAsociados(gymId: string): Promise<Usuario[]>;
+
+  /**
+   * Elimina un gimnasio por su ID.
+   * @param id - El ID del gimnasio a eliminar.
+   * @returns Una promesa que se resuelve cuando la eliminación es exitosa.
+   */
+  eliminar(id: string): Promise<void>;
 }
