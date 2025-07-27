@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Get,
   Body,
   ValidationPipe,
   UsePipes,
@@ -36,6 +37,26 @@ export class AuthController {
     @Inject(AuthService)
     private readonly authService: AuthService,
   ) {}
+
+  /**
+   * Endpoint de health check para el servicio de autenticación.
+   * GET /auth
+   */
+  @Get()
+  @HttpCode(HttpStatus.OK)
+  async healthCheck() {
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Servicio de autenticación disponible',
+      service: 'ms-identidad',
+      version: '1.8.0',
+      endpoints: {
+        login: 'POST /oauth/token',
+        register: 'POST /auth/register',
+        logout: 'POST /auth/logout'
+      }
+    };
+  }
 
   @Post('register')
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true }))
