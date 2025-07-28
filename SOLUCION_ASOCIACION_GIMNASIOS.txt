@@ -1,0 +1,102 @@
+SOLUCIÓN IMPLEMENTADA: ASOCIACIÓN DE USUARIOS A GIMNASIOS
+================================================================
+
+PROBLEMA IDENTIFICADO:
+=====================
+Los usuarios no se estaban asociando correctamente a gimnasios porque:
+
+1. Los Admins tienen una relación `ownedGym` (son dueños del gimnasio)
+2. Los Entrenadores y Atletas tienen una relación `gyms` (son miembros del gimnasio)
+3. El mapeo anterior solo consideraba la relación `gyms` pero no la `ownedGym`
+
+CAMBIOS IMPLEMENTADOS:
+=====================
+
+1. CORRECCIÓN DEL REPOSITORIO DE USUARIOS:
+   - Archivo: `src/infraestructura/db/prisma-usuario.repositorio.ts`
+   - Cambios:
+     * Actualizado tipo `UsuarioConPerfilCompleto` para incluir `ownedGym`
+     * Modificados métodos `encontrarPorEmail` y `encontrarPorId` para incluir `ownedGym`
+     * Corregido método `mapearADominio` para manejar ambas relaciones:
+       - Si `ownedGym` existe → Usuario es dueño del gimnasio (Admin)
+       - Si `gyms` existe → Usuario es miembro del gimnasio (Entrenador/Atleta)
+
+2. CORRECCIÓN DEL SERVICIO DE PERFIL DE USUARIO:
+   - Archivo: `src/aplicacion/servicios/perfil-usuario.service.ts`
+   - Cambios:
+     * Corregida lógica de auto-creación de gimnasios para admins
+     * Recarga del usuario después de crear el gimnasio para obtener la relación actualizada
+
+3. CORRECCIÓN DEL CONTROLADOR OAUTH:
+   - Archivo: `src/infraestructura/controladores/oauth.controller.ts`
+   - Cambios:
+     * Corregida lógica de auto-creación de gimnasios durante el login
+     * Recarga del usuario después de crear el gimnasio
+
+4. CORRECCIÓN DEL SERVICIO DE OBTENER CLAVE DE GIMNASIO:
+   - Archivo: `src/aplicacion/servicios/obtener-clave-gimnasio.service.ts`
+   - Cambios:
+     * Mejorada lógica para admins que usan la relación `ownedGym`
+     * Recarga del usuario después de crear gimnasio automáticamente
+
+FLUJO DE TRABAJO CORREGIDO:
+===========================
+
+1. ADMINISTRADORES:
+   - Al registrarse/loguearse → Se crea automáticamente un gimnasio
+   - El gimnasio se asocia mediante la relación `ownedGym`
+   - Pueden obtener/modificar la clave del gimnasio
+   - La clave se usa para que Entrenadores y Atletas se asocien
+
+2. ENTRENADORES:
+   - Necesitan la clave del gimnasio para asociarse
+   - Se asocian mediante la relación `gyms` (UserGymRelation)
+   - Pueden ver la clave del gimnasio una vez asociados
+
+3. ATLETAS:
+   - Necesitan la clave del gimnasio para asociarse
+   - Se asocian mediante la relación `gyms` (UserGymRelation)
+   - Se crea automáticamente una solicitud de aprobación
+
+ESTRUCTURA DE BASE DE DATOS:
+============================
+
+User (Usuario):
+- ownedGym: Gym? (relación 1:1 para Admins)
+- gyms: UserGymRelation[] (relación N:M para Entrenadores/Atletas)
+
+Gym (Gimnasio):
+- ownerId: String (ID del Admin dueño)
+- gymKey: String (clave única para asociación)
+
+UserGymRelation (Relación Usuario-Gimnasio):
+- userId: String
+- gymId: String
+- Clave compuesta: [userId, gymId]
+
+VERIFICACIÓN:
+============
+Se ejecutó el script de prueba `test-gym-association.js` que confirma:
+✅ Admins tienen `ownedGym` (son dueños)
+✅ Entrenadores y Atletas tienen `gyms` (son miembros)
+✅ Las relaciones se mapean correctamente en el dominio
+✅ Los servicios funcionan con ambas relaciones
+
+RESULTADO:
+==========
+Los usuarios ahora se asocian correctamente a gimnasios según su rol:
+- Admins: Dueños del gimnasio (ownedGym)
+- Entrenadores/Atletas: Miembros del gimnasio (gyms)
+
+La respuesta del API ahora mostrará correctamente el gimnasio asociado:
+{
+  "id": "user-id",
+  "email": "user@example.com",
+  "nombre": "User Name",
+  "rol": "Admin|Entrenador|Atleta",
+  "gimnasio": {
+    "id": "gym-id",
+    "nombre": "Gym Name"
+  },
+  ...
+} 

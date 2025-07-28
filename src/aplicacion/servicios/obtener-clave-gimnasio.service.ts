@@ -55,6 +55,12 @@ export class ObtenerClaveGimnasioService {
         });
 
         gimnasio = await this.gimnasioRepositorio.guardar(gimnasio);
+        
+        // ✅ CORRECCIÓN: Recargar el usuario para obtener el gimnasio recién creado
+        const usuarioActualizado = await this.usuarioRepositorio.encontrarPorId(solicitanteId);
+        if (usuarioActualizado && usuarioActualizado.gimnasio) {
+          console.log('✅ CLAVE: Gimnasio creado automáticamente para admin:', usuario.email);
+        }
       }
     } else {
       // Un Entrenador es un miembro del gimnasio.

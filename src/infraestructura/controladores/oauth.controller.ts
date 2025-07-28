@@ -60,7 +60,7 @@ export class OauthController {
       throw new UnauthorizedException('Cliente inválido (invalid_client).');
     }
 
-    const usuario = await this.authService.validarCredencialesUsuario(
+    let usuario = await this.authService.validarCredencialesUsuario(
       tokenRequestDto.username,
       tokenRequestDto.password,
     );
@@ -89,11 +89,14 @@ export class OauthController {
 
         const gimnasioGuardado = await this.gimnasioRepositorio.guardar(gimnasio);
         
-        // Actualizar el objeto usuario para incluir el gimnasio
-        usuario.gimnasio = {
-          id: gimnasioGuardado.id,
-          nombre: gimnasioGuardado.nombre,
-        };
+        // ✅ CORRECCIÓN: Recargar el usuario para obtener el gimnasio recién creado
+        const usuarioActualizado = await this.authService.validarCredencialesUsuario(
+          tokenRequestDto.username,
+          tokenRequestDto.password,
+        );
+        if (usuarioActualizado) {
+          usuario = usuarioActualizado;
+        }
         
         console.log('✅ OAUTH: Gimnasio creado automáticamente para admin:', usuario.email);
       } catch (error) {

@@ -20,6 +20,7 @@ import {
 // Tipo local para la respuesta enriquecida de Prisma
 type UsuarioConPerfilCompleto = User & {
   athleteProfile: Athlete | null;
+  ownedGym: Gym | null;
   gyms: ({ gym: Gym })[];
 };
 
@@ -32,6 +33,7 @@ export class PrismaUsuarioRepositorio implements IUsuarioRepositorio {
       where: { email },
       include: {
         athleteProfile: true,
+        ownedGym: true,
         gyms: { include: { gym: true } },
       },
     });
@@ -43,6 +45,7 @@ export class PrismaUsuarioRepositorio implements IUsuarioRepositorio {
       where: { id },
       include: {
         athleteProfile: true,
+        ownedGym: true,
         gyms: { include: { gym: true } },
       },
     });
@@ -187,7 +190,16 @@ export class PrismaUsuarioRepositorio implements IUsuarioRepositorio {
     }
 
     let gimnasioDominio: GimnasioDominio | null = null;
-    if (usuarioDb.gyms && usuarioDb.gyms.length > 0) {
+    
+    // ✅ CORRECCIÓN: Manejar tanto ownedGym como gyms
+    if (usuarioDb.ownedGym) {
+      // Si es dueño de un gimnasio (Admin)
+      gimnasioDominio = {
+        id: usuarioDb.ownedGym.id,
+        nombre: usuarioDb.ownedGym.name,
+      };
+    } else if (usuarioDb.gyms && usuarioDb.gyms.length > 0) {
+      // Si es miembro de un gimnasio (Entrenador/Atleta)
       gimnasioDominio = {
         id: usuarioDb.gyms[0].gym.id,
         nombre: usuarioDb.gyms[0].gym.name,

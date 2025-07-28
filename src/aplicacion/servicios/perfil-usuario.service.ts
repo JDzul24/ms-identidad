@@ -19,7 +19,7 @@ export class PerfilUsuarioService {
    * @returns Un DTO con la información completa y estructurada del perfil.
    */
   async ejecutar(usuarioId: string): Promise<PerfilUsuarioDto> {
-    const usuario = await this.usuarioRepositorio.encontrarPorId(usuarioId);
+    let usuario = await this.usuarioRepositorio.encontrarPorId(usuarioId);
 
     if (!usuario) {
       throw new NotFoundException(
@@ -84,11 +84,11 @@ export class PerfilUsuarioService {
 
         const gimnasioGuardado = await this.gimnasioRepositorio.guardar(gimnasio);
         
-        // Actualizar el objeto usuario para incluir el gimnasio
-        usuario.gimnasio = {
-          id: gimnasioGuardado.id,
-          nombre: gimnasioGuardado.nombre,
-        };
+        // ✅ CORRECCIÓN: Recargar el usuario para obtener el gimnasio recién creado
+        const usuarioActualizado = await this.usuarioRepositorio.encontrarPorId(usuario.id);
+        if (usuarioActualizado) {
+          usuario = usuarioActualizado;
+        }
         
         console.log('✅ PERFIL: Gimnasio creado automáticamente para admin:', usuario.email);
       } catch (error) {
