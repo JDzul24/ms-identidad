@@ -75,4 +75,11 @@ export interface IGimnasioRepositorio {
    * @returns Una promesa que se resuelve cuando la eliminación es exitosa.
    */
   eliminar(id: string): Promise<void>;
+
+  /**
+   * Elimina todas las relaciones de usuarios con un gimnasio.
+   * @param gymId - El ID del gimnasio.
+   * @returns Una promesa que se resuelve cuando la eliminación es exitosa.
+   */
+  eliminarRelacionesUsuarios(gymId: string): Promise<void>;
 }

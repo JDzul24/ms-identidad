@@ -154,6 +154,12 @@ export class PrismaGimnasioRepositorio implements IGimnasioRepositorio {
     });
   }
 
+  public async eliminarRelacionesUsuarios(gymId: string): Promise<void> {
+    await this.prisma.userGymRelation.deleteMany({
+      where: { gymId: gymId },
+    });
+  }
+
   private mapearGimnasioADominio(persistencia: PrismaGym): Gimnasio {
     return Gimnasio.desdePersistencia({
       id: persistencia.id,

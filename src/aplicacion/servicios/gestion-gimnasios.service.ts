@@ -197,12 +197,10 @@ export class GestionGimnasiosService {
       throw new Error('Gimnasio no encontrado');
     }
 
-    // Verificar si hay usuarios asociados
-    const usuariosAsociados = await this.gimnasioRepositorio.obtenerUsuariosAsociados(id);
-    if (usuariosAsociados.length > 0) {
-      throw new Error('No se puede eliminar el gimnasio porque tiene usuarios asociados');
-    }
-
+    // Eliminar primero las relaciones de usuarios
+    await this.gimnasioRepositorio.eliminarRelacionesUsuarios(id);
+    
+    // Luego eliminar el gimnasio
     await this.gimnasioRepositorio.eliminar(id);
 
     return { message: 'Gimnasio eliminado exitosamente.' };
