@@ -63,10 +63,10 @@ export class ObtenerClaveGimnasioService {
       );
 
       // Si el Entrenador no tiene gimnasio, no podemos crear uno automáticamente
-      if (!gimnasio) {
-        throw new NotFoundException(
+    if (!gimnasio) {
+      throw new NotFoundException(
           'No se encontró un gimnasio asociado a este usuario. Los entrenadores deben ser invitados por un administrador.',
-        );
+      );
       }
     }
 
