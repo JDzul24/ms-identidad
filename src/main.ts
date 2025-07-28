@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { MsIdentidadModule } from './ms-identidad';
 import { PrismaService } from './infraestructura/db/prisma.service';
+import { InicializacionService } from './aplicacion/servicios/inicializacion.service';
 
 /**
  * Función de arranque (bootstrap) para el microservicio de Identidad.
@@ -36,6 +37,16 @@ async function bootstrap() {
   // Se mantiene la gestión de shutdown hooks para Prisma.
   const prismaService = app.get(PrismaService);
   await prismaService.enableShutdownHooks(app);
+
+  // --- INICIALIZACIÓN AUTOMÁTICA DEL USUARIO ADMINISTRADOR ---
+  try {
+    console.log('🔧 Inicializando usuario administrador...');
+    const inicializacionService = app.get(InicializacionService);
+    await inicializacionService.inicializarUsuarioAdmin();
+    console.log('✅ Usuario administrador inicializado correctamente');
+  } catch (error) {
+    console.error('❌ Error al inicializar usuario administrador:', error);
+  }
 
   // Se inicia el servidor.
   await app.listen(process.env.PORT || 3000, '0.0.0.0');

@@ -29,6 +29,7 @@ import { SincronizarUsuarioService } from './aplicacion/servicios/sincronizar-us
 import { EmailService } from './aplicacion/servicios/email.service';
 import { ConfirmacionEmailService } from './aplicacion/servicios/confirmacion-email.service';
 import { GestionGimnasiosService } from './aplicacion/servicios/gestion-gimnasios.service';
+import { InicializacionService } from './aplicacion/servicios/inicializacion.service';
 
 // --- Manejadores de Eventos ---
 import { ManejadorAtletaAprobado } from './aplicacion/manejadores/manejador-atleta-aprobado';
@@ -90,6 +91,9 @@ import { NestjsEventEmitter } from './infraestructura/eventos/nestjs-event-emitt
     EmailService,
     ConfirmacionEmailService,
     GestionGimnasiosService,
+    InicializacionService,
+    
+
 
     // Manejadores de Eventos
     ManejadorAtletaAprobado,

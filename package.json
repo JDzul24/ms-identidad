@@ -20,7 +20,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "prisma:generate": "dotenv -e .env -- npx prisma generate",
     "prisma:migrate": "dotenv -e .env -- npx prisma migrate dev",
-    "prisma:deploy": "dotenv -e .env -- npx prisma migrate deploy"
+    "prisma:deploy": "dotenv -e .env -- npx prisma migrate deploy",
+    "init-admin": "node scripts/init-admin.js"
   },
   "dependencies": {
     "@nestjs/axios": "^3.0.2",

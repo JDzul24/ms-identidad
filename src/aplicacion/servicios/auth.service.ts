@@ -32,45 +32,22 @@ export class AuthService {
       }
     ];
 
-    console.log('🔍 DEBUG: Validando cliente');
-    console.log('🔍 DEBUG: Client ID recibido:', clientId);
-    console.log('🔍 DEBUG: Client Secret recibido:', clientSecret);
-    console.log('🔍 DEBUG: Clientes válidos:', validClients.map(c => ({ id: c.id, secret: c.secret.substring(0, 10) + '...' })));
-
-    const esValido = validClients.some(client => 
+    return validClients.some(client => 
       clientId === client.id && clientSecret === client.secret
     );
-
-    console.log('🔍 DEBUG: Cliente válido:', esValido);
-    return esValido;
   }
 
-  public async validarCredencialesUsuario(
+    public async validarCredencialesUsuario(
     email: string,
     pass: string,
   ): Promise<Usuario | null> {
-    console.log('🔍 DEBUG: Validando credenciales de usuario');
-    console.log('🔍 DEBUG: Email recibido:', email);
-    
     const usuario = await this.usuarioRepositorio.encontrarPorEmail(email);
-    console.log('🔍 DEBUG: Usuario encontrado:', !!usuario);
-    
-    if (usuario) {
-      console.log('🔍 DEBUG: Usuario verificado:', usuario.estaVerificado());
-      const passwordValido = await bcrypt.compare(pass, usuario.obtenerPasswordHash());
-      console.log('🔍 DEBUG: Password válido:', passwordValido);
-      
-      if (passwordValido) {
-        if (!usuario.estaVerificado()) {
-          console.log('🔍 DEBUG: Usuario no verificado, lanzando excepción');
-          throw new UnauthorizedException('Por favor, confirma tu correo electrónico para iniciar sesión.');
-        }
-        console.log('🔍 DEBUG: Usuario válido y verificado');
-        return usuario;
+    if (usuario && (await bcrypt.compare(pass, usuario.obtenerPasswordHash()))) {
+      if (!usuario.estaVerificado()) {
+        throw new UnauthorizedException('Por favor, confirma tu correo electrónico para iniciar sesión.');
       }
+      return usuario;
     }
-    
-    console.log('🔍 DEBUG: Usuario inválido o no encontrado');
     return null;
   }
 

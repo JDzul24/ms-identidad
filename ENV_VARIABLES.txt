@@ -1,0 +1,23 @@
+# Variables de entorno necesarias para ms-identidad
+
+# Base de datos
+DATABASE_URL="postgresql://username:password@host:port/database"
+
+# JWT
+JWT_SECRET="tu-jwt-secret-muy-seguro"
+JWT_ACCESS_TOKEN_EXPIRATION="15m"
+JWT_REFRESH_SECRET="tu-refresh-secret-muy-seguro"
+JWT_REFRESH_TOKEN_EXPIRATION="7d"
+JWT_ISSUER_URL="https://api.capbox.site"
+JWT_AUDIENCE="capbox-users"
+
+# Email (Resend)
+RESEND_API_KEY="re_EmVMNViF_JxdkXDakWjqGtk16EvzqnqPm"
+FRONTEND_URL="https://capbox.site"
+
+# URLs de microservicios
+MS_RENDIMIENTO_URL="https://api.capbox.site/performance/v1"
+MS_PLANIFICACION_URL="https://api.capbox.site/planning/v1"
+
+# Puerto del servicio
+PORT=3000 

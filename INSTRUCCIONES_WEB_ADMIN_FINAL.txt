@@ -1,0 +1,95 @@
+# 🎯 GUÍA FINAL - PÁGINA WEB DE GESTIÓN INTERNA
+
+## ⚠️ IMPORTANTE: NO USAR OAUTH
+
+La página web de gestión interna **NO DEBE** usar OAuth ni autenticación. Es de uso interno exclusivo.
+
+## 🔗 ENDPOINTS DISPONIBLES (SIN AUTENTICACIÓN)
+
+### Base URL: `https://api.capbox.site/identity/v1`
+
+### 1. Obtener todos los gimnasios
+```
+GET /gyms
+```
+
+### 2. Obtener gimnasio por ID
+```
+GET /gyms/{id}
+```
+
+### 3. Crear gimnasio
+```
+POST /gyms
+Content-Type: application/json
+
+{
+  "name": "Nombre del gimnasio",
+  "size": "pequeño|mediano|grande",
+  "totalBoxers": 50,
+  "location": "Ubicación del gimnasio",
+  "imageUrl": "https://ejemplo.com/imagen.jpg"
+}
+```
+
+### 4. Modificar gimnasio
+```
+PUT /gyms/{id}
+Content-Type: application/json
+
+{
+  "name": "Nuevo nombre",
+  "size": "mediano",
+  "totalBoxers": 75,
+  "location": "Nueva ubicación",
+  "imageUrl": "https://ejemplo.com/nueva-imagen.jpg"
+}
+```
+
+### 5. Eliminar gimnasio
+```
+DELETE /gyms/{id}
+```
+
+## 🚫 LO QUE NO HACER
+
+- ❌ NO usar `/oauth/token`
+- ❌ NO usar autenticación JWT
+- ❌ NO usar client_id o client_secret
+- ❌ NO usar headers de Authorization
+
+## ✅ LO QUE SÍ HACER
+
+- ✅ Usar directamente los endpoints `/gyms/*`
+- ✅ Enviar JSON en el body para POST/PUT
+- ✅ Usar Content-Type: application/json
+- ✅ Manejar errores HTTP (400, 404, 500)
+
+## 🔧 EJEMPLO DE IMPLEMENTACIÓN
+
+```javascript
+// Obtener gimnasios
+fetch('https://api.capbox.site/identity/v1/gyms')
+  .then(response => response.json())
+  .then(data => console.log(data));
+
+// Crear gimnasio
+fetch('https://api.capbox.site/identity/v1/gyms', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    name: 'Mi Gimnasio',
+    size: 'mediano',
+    totalBoxers: 30,
+    location: 'Ciudad de México'
+  })
+})
+.then(response => response.json())
+.then(data => console.log(data));
+```
+
+## 🎯 RESUMEN
+
+La página web es **INDEPENDIENTE** de Flutter y **NO REQUIERE** autenticación. Usa directamente los endpoints de gestión de gimnasios. 

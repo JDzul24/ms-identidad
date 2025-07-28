@@ -20,6 +20,7 @@ import { RegistroUsuarioService } from '../../aplicacion/servicios/registro-usua
 import { AuthService } from '../../aplicacion/servicios/auth.service';
 import { JwtAuthGuard } from '../../infraestructura/guardias/jwt-auth.guard';
 
+
 // Definimos la interfaz para el request con el usuario adjunto por Passport
 interface RequestConUsuario extends Request {
   user: {
@@ -57,6 +58,8 @@ export class AuthController {
       }
     };
   }
+
+
 
   @Post('register')
   @UsePipes(new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true }))
