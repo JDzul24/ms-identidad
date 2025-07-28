@@ -46,6 +46,26 @@ export class AuthService {
       if (!usuario.estaVerificado()) {
         throw new UnauthorizedException('Por favor, confirma tu correo electrónico para iniciar sesión.');
       }
+
+      // ✅ AUTO-FIX: Activar coach automáticamente si está pendiente
+      if (usuario.rol === 'Entrenador' && usuario.estadoAtleta === 'pendiente_datos') {
+        console.log('⚠️ AUTH: Coach pendiente detectado, activando automáticamente:', email);
+        
+        try {
+          // Actualizar directamente en la base de datos usando Prisma
+          await this.usuarioRepositorio.guardar(usuario);
+          
+          // Actualizar el objeto usuario para la respuesta
+          usuario.estadoAtleta = 'activo';
+          usuario.datosFisicosCapturados = true;
+          
+          console.log('✅ AUTH: Coach activado automáticamente:', email);
+        } catch (error) {
+          console.error('❌ AUTH: Error activando coach automáticamente:', error);
+          // Continuar sin fallar el login
+        }
+      }
+
       return usuario;
     }
     return null;

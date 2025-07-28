@@ -18,6 +18,8 @@ import { RefreshTokenDto } from '../dtos/refresh-token.dto';
 import { JwtRefreshAuthGuard } from '../../infraestructura/guardias/jwt-refresh-auth.guard';
 import { Request } from 'express';
 import { Usuario } from '../../dominio/entidades/usuario.entity';
+import { IGimnasioRepositorio } from '../../dominio/repositorios/gimnasio.repositorio';
+import { Gimnasio } from '../../dominio/entidades/gimnasio.entity';
 
 // Extendemos la interfaz de Request para incluir el objeto 'user'
 // que Passport adjunta después de una validación exitosa.
@@ -30,6 +32,8 @@ export class OauthController {
   constructor(
     @Inject(AuthService)
     private readonly authService: AuthService,
+    @Inject('IGimnasioRepositorio')
+    private readonly gimnasioRepositorio: IGimnasioRepositorio,
   ) {}
 
   /**
@@ -66,8 +70,49 @@ export class OauthController {
       );
     }
 
+    // ✅ AUTO-FIX: Auto-vinculación de admin si no tiene gimnasio
+    if (usuario.rol === 'Admin' && !usuario.gimnasio) {
+      console.log('⚠️ OAUTH: Admin sin gimnasio detectado, creando uno por defecto:', usuario.email);
+      
+      try {
+        const nombreGimnasio = `Gimnasio de ${usuario.nombre}`;
+        
+        const gimnasio = Gimnasio.crear({
+          ownerId: usuario.id,
+          nombre: nombreGimnasio,
+          tamaño: 'mediano',
+          totalBoxeadores: 0,
+          ubicacion: 'Por definir',
+          imagenUrl: null,
+          gymKey: this.generarClaveGimnasio(nombreGimnasio),
+        });
+
+        const gimnasioGuardado = await this.gimnasioRepositorio.guardar(gimnasio);
+        
+        // Actualizar el objeto usuario para incluir el gimnasio
+        usuario.gimnasio = {
+          id: gimnasioGuardado.id,
+          nombre: gimnasioGuardado.nombre,
+        };
+        
+        console.log('✅ OAUTH: Gimnasio creado automáticamente para admin:', usuario.email);
+      } catch (error) {
+        console.error('❌ OAUTH: Error creando gimnasio automáticamente:', error);
+        // Continuar sin fallar el login
+      }
+    }
+
     // Si todo es válido, generamos ambos tokens (access y refresh)
     return this.authService.generarTokens(usuario);
+  }
+
+  private generarClaveGimnasio(nombreGimnasio: string): string {
+    // Generar clave basada en el nombre del gimnasio
+    const nombreLimpio = nombreGimnasio.replace(/[^a-zA-Z]/g, '').toUpperCase();
+    const timestamp = Date.now().toString().slice(-3);
+    const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+    
+    return `${nombreLimpio.slice(0, 3)}${timestamp}${random}`;
   }
 
   /**
