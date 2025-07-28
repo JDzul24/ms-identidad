@@ -56,4 +56,16 @@ export class PerfilUsuarioDto {
    * Si el rol es 'Entrenador' o 'Admin', esta propiedad será nula.
    */
   perfilAtleta: PerfilAtletaDto | null;
+
+  /**
+   * Estado del atleta (pendiente_datos, activo, inactivo).
+   * Solo aplica para usuarios con rol 'Atleta'.
+   */
+  estado_atleta?: string;
+
+  /**
+   * Indica si los datos físicos del atleta han sido capturados.
+   * Solo aplica para usuarios con rol 'Atleta'.
+   */
+  datos_fisicos_capturados?: boolean;
 }

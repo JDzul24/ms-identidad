@@ -16,6 +16,8 @@ export class Usuario {
   public perfilAtleta: PerfilAtletaDominio | null;
   public gimnasio: GimnasioDominio | null;
   private emailVerificado: boolean;
+  public estadoAtleta: string | null;
+  public datosFisicosCapturados: boolean;
 
   private constructor(props: {
     id: string;
@@ -29,6 +31,8 @@ export class Usuario {
     perfilAtleta: PerfilAtletaDominio | null;
     gimnasio: GimnasioDominio | null;
     emailVerificado: boolean;
+    estadoAtleta: string | null;
+    datosFisicosCapturados: boolean;
   }) {
     this.id = props.id;
     this.email = props.email;
@@ -41,6 +45,8 @@ export class Usuario {
     this.perfilAtleta = props.perfilAtleta;
     this.gimnasio = props.gimnasio;
     this.emailVerificado = props.emailVerificado;
+    this.estadoAtleta = props.estadoAtleta;
+    this.datosFisicosCapturados = props.datosFisicosCapturados;
   }
 
   public static async crear(props: {
@@ -65,6 +71,8 @@ export class Usuario {
       perfilAtleta: null,
       gimnasio: null,
       emailVerificado: false, // Los nuevos usuarios no están verificados
+      estadoAtleta: 'pendiente_datos',
+      datosFisicosCapturados: false,
     });
   }
 
@@ -91,6 +99,8 @@ export class Usuario {
       perfilAtleta: null,
       gimnasio: null,
       emailVerificado: true, // Los usuarios sincronizados se asumen verificados
+      estadoAtleta: 'pendiente_datos',
+      datosFisicosCapturados: false,
     });
   }
 
@@ -106,8 +116,14 @@ export class Usuario {
     perfilAtleta: PerfilAtletaDominio | null;
     gimnasio: GimnasioDominio | null;
     emailVerificado: boolean;
+    estadoAtleta?: string | null;
+    datosFisicosCapturados?: boolean;
   }): Usuario {
-    return new Usuario(props);
+    return new Usuario({
+      ...props,
+      estadoAtleta: props.estadoAtleta || 'pendiente_datos',
+      datosFisicosCapturados: props.datosFisicosCapturados || false,
+    });
   }
 
   public estaVerificado(): boolean {

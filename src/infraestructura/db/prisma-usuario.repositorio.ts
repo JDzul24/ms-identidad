@@ -206,6 +206,8 @@ export class PrismaUsuarioRepositorio implements IUsuarioRepositorio {
       perfilAtleta: perfilAtletaDominio,
       gimnasio: gimnasioDominio,
       emailVerificado: usuarioDb.email_verificado,
+      estadoAtleta: usuarioDb.estado_atleta,
+      datosFisicosCapturados: usuarioDb.datos_fisicos_capturados,
     });
   }
 }

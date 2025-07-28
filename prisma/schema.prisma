@@ -27,6 +27,9 @@ model User {
   email_verificado                 Boolean    @default(false) @map("email_verificado")
   confirmation_token               String?    @map("confirmation_token")
   confirmation_token_expires_at    DateTime?  @map("confirmation_token_expires_at")
+  estado_atleta                    String?    @default("pendiente_datos") @map("estado_atleta")
+  datos_fisicos_capturados        Boolean    @default(false) @map("datos_fisicos_capturados")
+  fecha_aprobacion                 DateTime?  @map("fecha_aprobacion")
   createdAt                        DateTime   @default(now()) @map("created_at")
 
   // Relaciones
@@ -42,6 +45,9 @@ model User {
   combatEvents            CombatEvent[]
   testResults             TestResult[]
   coachObservations       CoachObservation[]
+  asistencias             Asistencia[]
+  racha                   Racha?
+  historialRachas         HistorialRacha[]
 
   @@map("users")
 }
@@ -56,8 +62,9 @@ model Gym {
   imageUrl     String? @map("image_url")
   gymKey       String  @unique @map("gym_key")
 
-  owner   User              @relation("OwnerToGym", fields: [ownerId], references: [id])
-  members UserGymRelation[]
+  owner       User              @relation("OwnerToGym", fields: [ownerId], references: [id])
+  members     UserGymRelation[]
+  asistencias Asistencia[]
 
   @@map("gyms")
 }
@@ -293,4 +300,51 @@ model Attendance {
   // tenga dos registros de asistencia para el mismo día.
   @@unique([athleteId, attendanceDate])
   @@map("attendances") // Nombre de la tabla en la base de datos
+}
+
+model Asistencia {
+  id             String   @id @db.Char(36)
+  gymId          String   @db.Char(36)
+  alumnoId       String   @db.Char(36)
+  fecha          DateTime @db.Date
+  status         String   // 'presente', 'falto', 'permiso'
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @map("updated_at")
+
+  gym    Gym    @relation(fields: [gymId], references: [id])
+  alumno User   @relation(fields: [alumnoId], references: [id])
+
+  @@unique([gymId, alumnoId, fecha])
+  @@map("asistencias")
+}
+
+model Racha {
+  id                    String   @id @db.Char(36)
+  usuarioId             String   @unique @db.Char(36)
+  rachaActual           Int      @default(0) @map("racha_actual")
+  estado                String   @default("activo") // 'activo', 'congelado'
+  recordPersonal        Int      @default(0) @map("record_personal")
+  ultimaActualizacion   DateTime @default(now()) @map("ultima_actualizacion")
+  createdAt             DateTime @default(now()) @map("created_at")
+
+  usuario         User             @relation(fields: [usuarioId], references: [id])
+  historialRachas HistorialRacha[]
+
+  @@map("rachas")
+}
+
+model HistorialRacha {
+  id          String   @id @db.Char(36)
+  usuarioId   String   @db.Char(36)
+  rachaId     String   @db.Char(36)
+  inicio      DateTime
+  fin         DateTime?
+  duracion    Int
+  motivoFin   String?  @map("motivo_fin") // 'falto', 'permiso', 'manual'
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  usuario User @relation(fields: [usuarioId], references: [id])
+  racha   Racha @relation(fields: [rachaId], references: [id])
+
+  @@map("historial_rachas")
 }

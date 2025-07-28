@@ -50,6 +50,10 @@ export class PerfilUsuarioService {
               usuario.perfilAtleta.contactoEmergenciaTelefono,
           }
         : null,
+
+      // Nuevos campos para estado del atleta
+      estado_atleta: usuario.estadoAtleta || 'pendiente_datos',
+      datos_fisicos_capturados: usuario.datosFisicosCapturados || false,
     };
 
     return perfilDto;

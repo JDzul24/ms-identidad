@@ -14,6 +14,8 @@ import { AtletasController } from './infraestructura/controladores/atletas.contr
 import { GimnasiosController } from './infraestructura/controladores/gimnasios.controller';
 import { GestionGimnasiosController } from './infraestructura/controladores/gestion-gimnasios.controller';
 import { ConfirmacionEmailController } from './infraestructura/controladores/confirmacion-email.controller';
+import { AsistenciaController } from './infraestructura/controladores/asistencia.controller';
+import { RachaController } from './infraestructura/controladores/racha.controller';
 
 // --- Servicios de Aplicación ---
 import { AuthService } from './aplicacion/servicios/auth.service';
@@ -30,6 +32,9 @@ import { EmailService } from './aplicacion/servicios/email.service';
 import { ConfirmacionEmailService } from './aplicacion/servicios/confirmacion-email.service';
 import { GestionGimnasiosService } from './aplicacion/servicios/gestion-gimnasios.service';
 import { InicializacionService } from './aplicacion/servicios/inicializacion.service';
+import { ConsultarAsistenciaService } from './aplicacion/servicios/consultar-asistencia.service';
+import { ActualizarAsistenciaService } from './aplicacion/servicios/actualizar-asistencia.service';
+import { ConsultarRachaService } from './aplicacion/servicios/consultar-racha.service';
 
 // --- Manejadores de Eventos ---
 import { ManejadorAtletaAprobado } from './aplicacion/manejadores/manejador-atleta-aprobado';
@@ -46,6 +51,8 @@ import { PrismaService } from './infraestructura/db/prisma.service';
 import { PrismaGimnasioRepositorio } from './infraestructura/db/prisma-gimnasio.repositorio';
 import { PrismaUsuarioRepositorio } from './infraestructura/db/prisma-usuario.repositorio';
 import { PrismaSolicitudRepositorio } from './infraestructura/db/prisma-solicitud.repositorio';
+import { PrismaAsistenciaRepositorio } from './infraestructura/db/prisma-asistencia.repositorio';
+import { PrismaRachaRepositorio } from './infraestructura/db/prisma-racha.repositorio';
 import { NotificacionesPushService } from './infraestructura/notificaciones/notificaciones-push.service';
 import { NestjsEventEmitter } from './infraestructura/eventos/nestjs-event-emitter';
 
@@ -75,6 +82,8 @@ import { NestjsEventEmitter } from './infraestructura/eventos/nestjs-event-emitt
     GimnasiosController,
     GestionGimnasiosController,
     ConfirmacionEmailController,
+    AsistenciaController,
+    RachaController,
   ],
   providers: [
     // Servicios de Aplicación
@@ -92,6 +101,9 @@ import { NestjsEventEmitter } from './infraestructura/eventos/nestjs-event-emitt
     ConfirmacionEmailService,
     GestionGimnasiosService,
     InicializacionService,
+    ConsultarAsistenciaService,
+    ActualizarAsistenciaService,
+    ConsultarRachaService,
     
 
 
@@ -123,6 +135,14 @@ import { NestjsEventEmitter } from './infraestructura/eventos/nestjs-event-emitt
     {
       provide: 'ISolicitudRepositorio',
       useClass: PrismaSolicitudRepositorio,
+    },
+    {
+      provide: 'IAsistenciaRepositorio',
+      useClass: PrismaAsistenciaRepositorio,
+    },
+    {
+      provide: 'IRachaRepositorio',
+      useClass: PrismaRachaRepositorio,
     },
   ],
 })
