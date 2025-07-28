@@ -1,0 +1,330 @@
+# 🎯 GUÍA COMPLETA PARA FLUTTER - CAPBOX API
+
+## 🔗 BASE URL
+```
+https://api.capbox.site/identity/v1
+```
+
+## 🔐 CREDENCIALES OAUTH2
+```
+CLIENT_ID: capbox-mobile-app
+CLIENT_SECRET: capbox-secret-key-2024
+```
+
+## 📋 ENDPOINTS PRINCIPALES
+
+### 1. REGISTRO DE USUARIO
+```
+POST /auth/register
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "password123",
+  "nombre": "Juan Pérez",
+  "rol": "Admin",
+  "nombreGimnasio": "Zikar"  // ← NUEVO CAMPO OPCIONAL
+}
+```
+
+**Respuesta para Admin:**
+```json
+{
+  "id": "user-id-123",
+  "email": "admin@example.com",
+  "gymnarium": {
+    "id": "gym-id-456",
+    "nombre": "Zikar"
+  }
+}
+```
+
+**Respuesta para Entrenador/Atleta:**
+```json
+{
+  "id": "user-id-123",
+  "email": "entrenador@example.com"
+}
+```
+
+### 2. LOGIN OAUTH2
+```
+POST /oauth/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password&
+client_id=capbox-mobile-app&
+client_secret=capbox-secret-key-2024&
+username=admin@example.com&
+password=password123
+```
+
+**Respuesta:**
+```json
+{
+  "access_token": "jwt-token-here",
+  "refresh_token": "refresh-token-here"
+}
+```
+
+### 3. CONFIRMACIÓN DE EMAIL
+```
+POST /auth/confirm-email
+Content-Type: application/json
+
+{
+  "token": "123456"  // Token de 6 dígitos del email
+}
+```
+
+### 4. OBTENER CLAVE DE GIMNASIO
+```
+GET /usuarios/gimnasio/clave
+Authorization: Bearer <access_token>
+```
+
+**Respuesta:**
+```json
+{
+  "claveGym": "ZIK234567"
+}
+```
+
+### 5. MODIFICAR CLAVE DE GIMNASIO
+```
+PATCH /usuarios/gimnasio/clave
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+{
+  "nuevaClave": "NUEVA123"
+}
+```
+
+### 6. VINCULAR A GIMNASIO
+```
+POST /usuarios/gimnasio/vincular
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+{
+  "claveGym": "ZIK234567"
+}
+```
+
+### 7. PERFIL DE USUARIO
+```
+GET /usuarios/me
+Authorization: Bearer <access_token>
+```
+
+### 8. REFRESH TOKEN
+```
+POST /oauth/token/refresh
+Authorization: Bearer <refresh_token>
+```
+
+## 🎯 FLUJO DE REGISTRO ACTUALIZADO
+
+### ADMIN CON nombreGimnasio:
+```dart
+final response = await dio.post('/auth/register', data: {
+  'email': 'admin@example.com',
+  'password': 'password123',
+  'nombre': 'Juan Pérez',
+  'rol': 'Admin',
+  'nombreGimnasio': 'Zikar'
+});
+
+// Resultado: Se crea usuario + gimnasio "Zikar" + clave "ZIK234567"
+```
+
+### ADMIN SIN nombreGimnasio:
+```dart
+final response = await dio.post('/auth/register', data: {
+  'email': 'admin@example.com',
+  'password': 'password123',
+  'nombre': 'Juan Pérez',
+  'rol': 'Admin'
+  // Sin nombreGimnasio
+});
+
+// Resultado: Se crea usuario + gimnasio "Gimnasio de Juan Pérez"
+```
+
+### ENTRENADOR/ATLETA:
+```dart
+final response = await dio.post('/auth/register', data: {
+  'email': 'entrenador@example.com',
+  'password': 'password123',
+  'nombre': 'María López',
+  'rol': 'Entrenador'
+});
+
+// Resultado: Solo se crea usuario, sin gimnasio
+```
+
+## 🔧 IMPLEMENTACIÓN EN FLUTTER
+
+### Configuración Dio:
+```dart
+final dio = Dio(BaseOptions(
+  baseUrl: 'https://api.capbox.site/identity/v1',
+  connectTimeout: Duration(seconds: 30),
+  receiveTimeout: Duration(seconds: 30),
+));
+
+// Interceptor para agregar token automáticamente
+dio.interceptors.add(InterceptorsWrapper(
+  onRequest: (options, handler) {
+    if (token != null) {
+      options.headers['Authorization'] = 'Bearer $token';
+    }
+    handler.next(options);
+  },
+));
+```
+
+### Registro con nombreGimnasio:
+```dart
+Future<void> registrarAdminConGimnasio() async {
+  try {
+    final response = await dio.post('/auth/register', data: {
+      'email': 'admin@example.com',
+      'password': 'password123',
+      'nombre': 'Juan Pérez',
+      'rol': 'Admin',
+      'nombreGimnasio': 'Zikar', // ← NUEVO CAMPO
+    });
+    
+    print('Usuario creado: ${response.data['id']}');
+    print('Gimnasio creado: ${response.data['gymnarium']['nombre']}');
+    
+  } catch (e) {
+    print('Error en registro: $e');
+  }
+}
+```
+
+### Login OAuth2:
+```dart
+Future<void> login() async {
+  try {
+    final formData = FormData.fromMap({
+      'grant_type': 'password',
+      'client_id': 'capbox-mobile-app',
+      'client_secret': 'capbox-secret-key-2024',
+      'username': 'admin@example.com',
+      'password': 'password123',
+    });
+    
+    final response = await dio.post('/oauth/token', data: formData);
+    
+    final accessToken = response.data['access_token'];
+    final refreshToken = response.data['refresh_token'];
+    
+    // Guardar tokens
+    await _guardarTokens(accessToken, refreshToken);
+    
+  } catch (e) {
+    print('Error en login: $e');
+  }
+}
+```
+
+## ⚠️ VALIDACIONES IMPORTANTES
+
+1. **Campo nombreGimnasio:**
+   - Opcional (no obligatorio)
+   - Solo se procesa si rol = "Admin"
+   - Mínimo 3 caracteres
+   - Se ignora si rol no es Admin
+
+2. **Confirmación de email:**
+   - Token de 6 dígitos numérico
+   - Válido por 15 minutos
+   - Se envía por email automáticamente
+
+3. **Claves de gimnasio:**
+   - Se generan automáticamente basadas en el nombre
+   - Formato: 3 letras + timestamp + random
+   - Ejemplo: "ZIK" + "234" + "56" = "ZIK23456"
+
+## 🚨 MANEJO DE ERRORES
+
+### Error 422 (Unprocessable Entity):
+```json
+{
+  "message": "El correo electrónico ya está en uso."
+}
+```
+
+### Error 400 (Bad Request):
+```json
+{
+  "message": "Datos de registro incompletos."
+}
+```
+
+### Error 401 (Unauthorized):
+```json
+{
+  "message": "Credenciales de usuario inválidas (invalid_grant)."
+}
+```
+
+## 📱 EJEMPLO COMPLETO DE REGISTRO
+
+```dart
+class RegistroService {
+  final Dio dio;
+  
+  RegistroService(this.dio);
+  
+  Future<Map<String, dynamic>> registrarUsuario({
+    required String email,
+    required String password,
+    required String nombre,
+    required String rol,
+    String? nombreGimnasio,
+  }) async {
+    try {
+      final data = {
+        'email': email,
+        'password': password,
+        'nombre': nombre,
+        'rol': rol,
+      };
+      
+      // Solo agregar nombreGimnasio si se proporciona
+      if (nombreGimnasio != null && nombreGimnasio.isNotEmpty) {
+        data['nombreGimnasio'] = nombreGimnasio;
+      }
+      
+      final response = await dio.post('/auth/register', data: data);
+      
+      return {
+        'success': true,
+        'data': response.data,
+        'gimnasioCreado': response.data['gymnarium'] != null,
+      };
+      
+    } catch (e) {
+      return {
+        'success': false,
+        'error': e.toString(),
+      };
+    }
+  }
+}
+```
+
+## ✅ RESUMEN DE CAMBIOS
+
+1. **Nuevo campo `nombreGimnasio`** en registro
+2. **Creación automática de gimnasio** para admins
+3. **Generación de claves** basadas en nombre
+4. **Respuesta mejorada** con información del gimnasio
+5. **Validaciones robustas** para todos los campos
+
+¡El backend ya está listo para recibir el campo `nombreGimnasio`! 

@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsString,
   MinLength,
+  IsOptional,
 } from 'class-validator';
 
 export enum RolUsuario {
@@ -29,4 +30,9 @@ export class RegistrarUsuarioDto {
   @IsEnum(RolUsuario, { message: 'El rol proporcionado no es válido.' })
   @IsNotEmpty({ message: 'Debe especificar un rol.' })
   rol: RolUsuario;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(3, { message: 'El nombre del gimnasio debe tener al menos 3 caracteres.' })
+  nombreGimnasio?: string;
 }
