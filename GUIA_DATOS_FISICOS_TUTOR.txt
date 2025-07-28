@@ -1,0 +1,226 @@
+# 🥊 GUÍA COMPLETA: DATOS FÍSICOS Y DE TUTOR PARA ATLETAS
+
+## 📋 **FLUJO COMPLETO DEL SISTEMA:**
+
+### **1. ✅ Registro del Atleta**
+- Atleta se registra con email, password, nombre, rol: "Atleta"
+- Estado inicial: `estado_atleta = "pendiente_datos"`
+- `datos_fisicos_capturados = false`
+
+### **2. ✅ Verificación de Email**
+- Atleta confirma su email con el token de 6 dígitos
+- Email queda verificado: `email_verificado = true`
+
+### **3. ✅ Vinculación con Gimnasio**
+- Atleta ingresa la clave del gimnasio
+- Se crea relación en `user_gym_relations`
+- Se crea solicitud en `data_capture_requests`
+
+### **4. ✅ Coach Aprueba y Captura Datos**
+- Coach ve atleta pendiente en su lista
+- Coach ejecuta `POST /atletas/{atletaId}/aprobar`
+- Se capturan datos físicos y de tutor
+- Atleta queda aprobado: `estado_atleta = "activo"`
+
+---
+
+## 🎯 **ENDPOINTS DISPONIBLES:**
+
+### **✅ 1. Debug del Coach (NUEVO)**
+```bash
+GET /identity/v1/atletas/debug/coach-status
+Authorization: Bearer <coach_token>
+```
+
+**Respuesta esperada:**
+```json
+{
+  "coach": {
+    "id": "coach-id",
+    "email": "coach@email.com",
+    "nombre": "Coach Name",
+    "rol": "Entrenador",
+    "estadoAtleta": "activo",
+    "datosFisicosCapturados": true
+  },
+  "solicitudesPendientes": [
+    {
+      "id": "solicitud-id",
+      "atletaId": "atleta-id",
+      "coachId": "coach-id",
+      "status": "PENDIENTE",
+      "nombreAtleta": "Atleta Name",
+      "emailAtleta": "atleta@email.com"
+    }
+  ],
+  "totalSolicitudes": 1
+}
+```
+
+### **✅ 2. Aprobar Atleta**
+```bash
+POST /identity/v1/atletas/{atletaId}/aprobar
+Authorization: Bearer <coach_token>
+Content-Type: application/json
+
+{
+  "nivel": "principiante",
+  "alturaCm": 170,
+  "pesoKg": 70,
+  "guardia": "orthodox",
+  "alergias": "Ninguna",
+  "contactoEmergenciaNombre": "Juan Pérez",
+  "contactoEmergenciaTelefono": "1234567890"
+}
+```
+
+**Respuesta esperada:**
+```json
+{
+  "mensaje": "Atleta aprobado y perfil actualizado con éxito."
+}
+```
+
+### **✅ 3. Consultar Solicitudes Pendientes**
+```bash
+GET /identity/v1/requests/pending
+Authorization: Bearer <coach_token>
+```
+
+**Respuesta esperada:**
+```json
+[
+  {
+    "id": "atleta-id",
+    "email": "atleta@email.com",
+    "nombre": "Atleta Name",
+    "rol": "Atleta",
+    "estado_atleta": "pendiente_datos",
+    "datos_fisicos_capturados": false
+  }
+]
+```
+
+---
+
+## 🧪 **DATOS QUE SE CAPTURAN:**
+
+### **📊 Datos Físicos (OBLIGATORIOS):**
+```json
+{
+  "nivel": "string",           // "principiante", "intermedio", "avanzado"
+  "alturaCm": "number",        // Altura en centímetros
+  "pesoKg": "number"          // Peso en kilogramos
+}
+```
+
+### **📊 Datos Físicos (OPCIONALES):**
+```json
+{
+  "guardia": "string",         // "orthodox", "southpaw"
+  "alergias": "string"         // Descripción de alergias
+}
+```
+
+### **📞 Datos de Tutor (OPCIONALES):**
+```json
+{
+  "contactoEmergenciaNombre": "string",    // Nombre del contacto
+  "contactoEmergenciaTelefono": "string"   // Teléfono del contacto
+}
+```
+
+---
+
+## 🔍 **DIAGNÓSTICO DE PROBLEMAS:**
+
+### **❌ Problema: Coach no puede aprobar atletas**
+
+**Verificar con el endpoint de debug:**
+```bash
+GET /identity/v1/atletas/debug/coach-status
+Authorization: Bearer <coach_token>
+```
+
+**Posibles causas:**
+1. **Coach no está activo:** `estadoAtleta !== "activo"`
+2. **No hay solicitudes pendientes:** `totalSolicitudes === 0`
+3. **Coach no tiene permisos:** `rol !== "Entrenador"`
+
+### **❌ Problema: Error 403 al aprobar**
+
+**Verificar:**
+1. **Token válido:** Coach debe estar autenticado
+2. **Coach activo:** `estadoAtleta === "activo"`
+3. **Solicitud existe:** Debe haber una solicitud pendiente
+4. **Permisos correctos:** Coach debe ser dueño de la solicitud
+
+### **❌ Problema: No aparecen atletas pendientes**
+
+**Verificar:**
+1. **Atletas registrados:** Deben existir atletas en la base de datos
+2. **Atletas vinculados:** Deben estar vinculados al gimnasio del coach
+3. **Solicitudes creadas:** Debe haber solicitudes en `data_capture_requests`
+
+---
+
+## 🚀 **PASOS PARA PROBAR:**
+
+### **1. Verificar estado del coach:**
+```bash
+GET /identity/v1/atletas/debug/coach-status
+Authorization: Bearer <coach_token>
+```
+
+### **2. Verificar atletas pendientes:**
+```bash
+GET /identity/v1/requests/pending
+Authorization: Bearer <coach_token>
+```
+
+### **3. Aprobar un atleta:**
+```bash
+POST /identity/v1/atletas/{atletaId}/aprobar
+Authorization: Bearer <coach_token>
+Content-Type: application/json
+
+{
+  "nivel": "principiante",
+  "alturaCm": 170,
+  "pesoKg": 70,
+  "guardia": "orthodox",
+  "alergias": "Ninguna",
+  "contactoEmergenciaNombre": "Juan Pérez",
+  "contactoEmergenciaTelefono": "1234567890"
+}
+```
+
+---
+
+## 📋 **ESTADOS DEL ATLETA:**
+
+### **🔄 Estados posibles:**
+- **`pendiente_datos`:** Atleta registrado pero sin datos físicos
+- **`activo`:** Atleta aprobado con datos físicos completos
+
+### **✅ Transiciones:**
+1. **Registro:** `pendiente_datos` → Coach debe aprobar
+2. **Aprobación:** `pendiente_datos` → `activo` (con datos físicos)
+
+---
+
+## 🎯 **RESUMEN DEL FLUJO:**
+
+### **✅ Para el Frontend:**
+1. **Coach hace login** → Se activa automáticamente
+2. **Coach consulta pendientes** → `GET /requests/pending`
+3. **Coach aprueba atleta** → `POST /atletas/{atletaId}/aprobar`
+4. **Atleta queda activo** → Puede usar la app normalmente
+
+### **✅ Para el Backend:**
+1. **Auto-fix activa coaches** → En login y /me
+2. **Solicitudes se crean** → Al vincular con gimnasio
+3. **Datos se guardan** → En tabla `athletes`
+4. **Estado se actualiza** → `estado_atleta = "activo"`
+
+**¡El sistema está completamente implementado y listo! 🚀** 
