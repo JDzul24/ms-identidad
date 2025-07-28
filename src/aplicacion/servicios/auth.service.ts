@@ -20,11 +20,21 @@ export class AuthService {
   ) {}
 
   public validarCliente(clientId: string, clientSecret: string): boolean {
-    const validClientId = this.configService.get<string>('OAUTH_CLIENT_ID');
-    const validClientSecret = this.configService.get<string>(
-      'OAUTH_CLIENT_SECRET',
+    // Clientes válidos para diferentes aplicaciones
+    const validClients = [
+      {
+        id: 'capbox-mobile-app',
+        secret: 'capbox-secret-key-2024'
+      },
+      {
+        id: 'capbox-web-admin',
+        secret: 'capbox-web-secret-2024'
+      }
+    ];
+
+    return validClients.some(client => 
+      clientId === client.id && clientSecret === client.secret
     );
-    return clientId === validClientId && clientSecret === validClientSecret;
   }
 
   public async validarCredencialesUsuario(
