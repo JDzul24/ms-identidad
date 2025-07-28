@@ -59,12 +59,12 @@ export class Usuario {
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(props.passwordPlano, saltRounds);
 
-    // ✅ NUEVA LÓGICA: Coaches se crean automáticamente activos
-    const estadoAtleta = props.rol === 'Entrenador' || props.rol === 'Admin' 
+    // ✅ CORRECCIÓN: ADMINS se crean automáticamente activos
+    const estadoAtleta = props.rol === 'Admin' 
       ? 'activo' 
       : 'pendiente_datos';
     
-    const datosFisicosCapturados = props.rol === 'Entrenador' || props.rol === 'Admin';
+    const datosFisicosCapturados = props.rol === 'Admin';
 
     return new Usuario({
       id,
@@ -94,8 +94,8 @@ export class Usuario {
     nombre: string;
     rol: RolUsuario;
   }): Usuario {
-    // ✅ NUEVA LÓGICA: Coaches se crean automáticamente activos
-    const estadoAtleta = props.rol === 'Entrenador' || props.rol === 'Admin' 
+    // ✅ CORRECCIÓN: ADMINS se crean automáticamente activos
+    const estadoAtleta = props.rol === 'Admin' 
       ? 'activo' 
       : 'pendiente_datos';
     

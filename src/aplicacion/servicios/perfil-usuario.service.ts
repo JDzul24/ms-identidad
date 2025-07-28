@@ -46,6 +46,25 @@ export class PerfilUsuarioService {
       }
     }
 
+    // ✅ AUTO-FIX: Activar admin automáticamente si está pendiente
+    if (usuario.rol === 'Admin' && usuario.estadoAtleta === 'pendiente_datos') {
+      console.log('⚠️ PERFIL: Admin pendiente detectado en /me, activando automáticamente:', usuario.email);
+      
+      try {
+        // Actualizar el estado del admin
+        usuario.estadoAtleta = 'activo';
+        usuario.datosFisicosCapturados = true;
+        
+        // Guardar los cambios en la base de datos
+        await this.usuarioRepositorio.guardar(usuario);
+        
+        console.log('✅ PERFIL: Admin activado automáticamente:', usuario.email);
+      } catch (error) {
+        console.error('❌ PERFIL: Error activando admin automáticamente:', error);
+        // Continuar sin fallar la consulta del perfil
+      }
+    }
+
     // ✅ AUTO-FIX: Auto-vinculación de admin si no tiene gimnasio
     if (usuario.rol === 'Admin' && !usuario.gimnasio) {
       console.log('⚠️ PERFIL: Admin sin gimnasio detectado en /me, creando uno por defecto:', usuario.email);

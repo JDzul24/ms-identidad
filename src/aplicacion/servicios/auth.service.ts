@@ -66,6 +66,25 @@ export class AuthService {
         }
       }
 
+      // ✅ AUTO-FIX: Activar admin automáticamente si está pendiente
+      if (usuario.rol === 'Admin' && usuario.estadoAtleta === 'pendiente_datos') {
+        console.log('⚠️ AUTH: Admin pendiente detectado, activando automáticamente:', email);
+        
+        try {
+          // Actualizar directamente en la base de datos usando Prisma
+          await this.usuarioRepositorio.guardar(usuario);
+          
+          // Actualizar el objeto usuario para la respuesta
+          usuario.estadoAtleta = 'activo';
+          usuario.datosFisicosCapturados = true;
+          
+          console.log('✅ AUTH: Admin activado automáticamente:', email);
+        } catch (error) {
+          console.error('❌ AUTH: Error activando admin automáticamente:', error);
+          // Continuar sin fallar el login
+        }
+      }
+
       return usuario;
     }
     return null;

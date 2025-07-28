@@ -4,6 +4,7 @@ import {
   UnprocessableEntityException,
   BadRequestException,
   InternalServerErrorException,
+  ConflictException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as jwt from 'jsonwebtoken';
@@ -13,6 +14,8 @@ import { IGimnasioRepositorio } from '../../dominio/repositorios/gimnasio.reposi
 import { Usuario } from '../../dominio/entidades/usuario.entity';
 import { Gimnasio } from '../../dominio/entidades/gimnasio.entity';
 import { EmailService } from './email.service';
+import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class RegistroUsuarioService {
@@ -23,42 +26,51 @@ export class RegistroUsuarioService {
     private readonly gimnasioRepositorio: IGimnasioRepositorio,
     private readonly emailService: EmailService,
     private readonly configService: ConfigService,
+    private readonly jwtService: JwtService,
   ) {}
 
-  public async ejecutar(
-    dto: RegistrarUsuarioDto,
-  ): Promise<{ id: string; email: string; gymnarium?: { id: string; nombre: string } }> {
-    // --- NUEVA VALIDACIÓN ---
-    // Asegurarnos de que los datos esenciales llegaron correctamente.
-    if (!dto || !dto.email || !dto.password || !dto.nombre || !dto.rol) {
-      throw new BadRequestException('Datos de registro incompletos. Por favor, verifica que todos los campos requeridos (email, password, nombre, rol) se están enviando correctamente.');
-    }
+  public async ejecutar(dto: RegistrarUsuarioDto): Promise<{ id: string; email: string; gymnarium?: { id: string; nombre: string } }> {
+    console.log('🚀 REGISTRO: Iniciando registro para:', dto.email);
+    console.log('📋 REGISTRO: Datos recibidos:', { email: dto.email, rol: dto.rol, nombre: dto.nombre });
 
-    // 1. Validar que el email no esté ya en uso.
-    const usuarioExistente = await this.usuarioRepositorio.encontrarPorEmail(
-      dto.email,
-    );
+    // Validar que el usuario no exista
+    const usuarioExistente = await this.usuarioRepositorio.encontrarPorEmail(dto.email);
     if (usuarioExistente) {
-      throw new UnprocessableEntityException(
-        'El correo electrónico ya está en uso.',
-      );
+      console.log('❌ REGISTRO: Usuario ya existe:', dto.email);
+      throw new ConflictException('El usuario ya existe');
     }
 
-    // 2. Crear la entidad de dominio Usuario.
-    const nuevoUsuario = await Usuario.crear({
-      email: dto.email,
-      passwordPlano: dto.password,
-      nombre: dto.nombre,
-      rol: dto.rol,
-    });
+    // Generar token de confirmación
+    const token = this.jwtService.sign(
+      { email: dto.email },
+      { secret: process.env.EMAIL_CONFIRMATION_SECRET, expiresIn: '24h' }
+    );
 
-    // 3. Persistir el nuevo usuario en la base de datos.
-    const usuarioGuardado = await this.usuarioRepositorio.guardar(nuevoUsuario);
-
-    // 4. Si es Admin, crear gimnasio y vincularlo
-    let gimnasioCreado = null;
+    // ✅ CORRECCIÓN: Lógica específica para ADMINS
     if (dto.rol === 'Admin') {
+      console.log('👑 REGISTRO: Creando ADMIN activo:', dto.email);
+      
+      // Crear admin con estado activo automáticamente
+      const usuario = await Usuario.crear({
+        email: dto.email,
+        nombre: dto.nombre,
+        passwordPlano: dto.password,
+        rol: dto.rol,
+      });
+
+      const usuarioGuardado = await this.usuarioRepositorio.guardar(usuario);
+      console.log('✅ REGISTRO: Admin creado activo:', dto.email);
+
+      // Establecer token de confirmación
+      await this.usuarioRepositorio.establecerTokenDeConfirmacion(
+        usuarioGuardado.id,
+        token,
+        new Date(Date.now() + 24 * 60 * 60 * 1000)
+      );
+
+      // Crear gimnasio automáticamente para admin
       const nombreGimnasio = dto.nombreGimnasio || `Gimnasio de ${dto.nombre}`;
+      const claveGimnasio = this.generarClaveGimnasio(nombreGimnasio);
       
       const gimnasio = Gimnasio.crear({
         ownerId: usuarioGuardado.id,
@@ -67,45 +79,72 @@ export class RegistroUsuarioService {
         totalBoxeadores: 0,
         ubicacion: 'Por definir',
         imagenUrl: null,
-        gymKey: this.generarClaveGimnasio(nombreGimnasio),
+        gymKey: claveGimnasio,
       });
 
       const gimnasioGuardado = await this.gimnasioRepositorio.guardar(gimnasio);
-      
-      gimnasioCreado = {
-        id: gimnasioGuardado.id,
-        nombre: gimnasioGuardado.nombre,
+      console.log('✅ REGISTRO: Gimnasio creado para admin:', gimnasioGuardado.nombre);
+      console.log('🔑 REGISTRO: Clave del gimnasio:', claveGimnasio);
+
+      // Enviar email de confirmación
+      try {
+        await this.emailService.sendConfirmationEmail(dto.email, token);
+        console.log('✅ REGISTRO: Email de confirmación enviado a admin:', dto.email);
+      } catch (error) {
+        console.error('❌ REGISTRO: Error enviando email a admin:', error);
+        // No fallar el registro si el email falla
+      }
+
+      return {
+        id: usuarioGuardado.id,
+        email: usuarioGuardado.email,
+        gymnarium: {
+          id: gimnasioGuardado.id,
+          nombre: gimnasioGuardado.nombre,
+        }
       };
     }
 
-    // 5. Generar token numérico, guardarlo y enviarlo por correo.
-    const tokenNumerico = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // El token expira en 15 minutos
+    // ✅ Lógica para COACHES y ATLETAS (necesitan clave de gym)
+    console.log('👤 REGISTRO: Creando usuario que necesita clave de gym:', dto.email);
+    
+    const usuario = await Usuario.crear({
+      email: dto.email,
+      nombre: dto.nombre,
+      passwordPlano: dto.password,
+      rol: dto.rol,
+    });
 
+    const usuarioGuardado = await this.usuarioRepositorio.guardar(usuario);
+    console.log('✅ REGISTRO: Usuario creado pendiente (necesita clave gym):', dto.email);
+
+    // Establecer token de confirmación
     await this.usuarioRepositorio.establecerTokenDeConfirmacion(
       usuarioGuardado.id,
-      tokenNumerico,
-      expiresAt,
+      token,
+      new Date(Date.now() + 24 * 60 * 60 * 1000)
     );
 
-    await this.emailService.sendConfirmationEmail(
-      usuarioGuardado.email,
-      tokenNumerico,
-    );
+    // Enviar email de confirmación
+    try {
+      await this.emailService.sendConfirmationEmail(dto.email, token);
+      console.log('✅ REGISTRO: Email de confirmación enviado:', dto.email);
+    } catch (error) {
+      console.error('❌ REGISTRO: Error enviando email:', error);
+      // No fallar el registro si el email falla
+    }
 
     return {
       id: usuarioGuardado.id,
       email: usuarioGuardado.email,
-      gymnarium: gimnasioCreado,
     };
   }
 
+  // ✅ FUNCIÓN AUXILIAR para generar clave de gimnasio
   private generarClaveGimnasio(nombreGimnasio: string): string {
-    // Generar clave basada en el nombre del gimnasio
     const nombreLimpio = nombreGimnasio.replace(/[^a-zA-Z]/g, '').toUpperCase();
     const timestamp = Date.now().toString().slice(-3);
     const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
-    
     return `${nombreLimpio.slice(0, 3)}${timestamp}${random}`;
   }
 }
