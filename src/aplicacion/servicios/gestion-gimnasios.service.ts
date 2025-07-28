@@ -1,6 +1,9 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { IGimnasioRepositorio } from '../../dominio/repositorios/gimnasio.repositorio';
+import { IUsuarioRepositorio } from '../../dominio/repositorios/usuario.repositorio';
 import { Gimnasio } from '../../dominio/entidades/gimnasio.entity';
+import { Usuario, RolUsuario } from '../../dominio/entidades/usuario.entity';
+import * as bcrypt from 'bcrypt';
 
 export interface FiltrosGimnasio {
   name?: string;
@@ -31,6 +34,8 @@ export class GestionGimnasiosService {
   constructor(
     @Inject('IGimnasioRepositorio')
     private readonly gimnasioRepositorio: IGimnasioRepositorio,
+    @Inject('IUsuarioRepositorio')
+    private readonly usuarioRepositorio: IUsuarioRepositorio,
   ) {}
 
   async obtenerGimnasios(filtros: FiltrosGimnasio): Promise<any[]> {
@@ -96,9 +101,34 @@ export class GestionGimnasiosService {
     };
   }
 
+  private async obtenerOcrearUsuarioAdmin(): Promise<string> {
+    const adminEmail = 'admin@capbox.site';
+    let admin = await this.usuarioRepositorio.encontrarPorEmail(adminEmail);
+    
+    if (!admin) {
+      // Crear usuario admin por defecto
+      admin = await Usuario.crear({
+        email: adminEmail,
+        passwordPlano: 'admin-capbox-2024',
+        nombre: 'Administrador CapBox',
+        rol: 'Admin' as RolUsuario,
+      });
+      
+      await this.usuarioRepositorio.guardar(admin);
+      
+      // Marcar como verificado
+      await this.usuarioRepositorio.marcarComoVerificado(admin.id);
+    }
+    
+    return admin.id;
+  }
+
   async crearGimnasio(dto: CrearGimnasioDto): Promise<any> {
+    // Obtener o crear usuario admin
+    const adminId = await this.obtenerOcrearUsuarioAdmin();
+    
     const gimnasio = Gimnasio.crear({
-      ownerId: 'admin-system', // ID por defecto para gimnasios de gestión interna
+      ownerId: adminId, // Usar el ID del admin real
       nombre: dto.name,
       tamaño: dto.size,
       totalBoxeadores: dto.totalBoxers,
