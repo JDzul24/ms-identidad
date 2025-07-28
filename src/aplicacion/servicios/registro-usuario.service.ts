@@ -40,11 +40,9 @@ export class RegistroUsuarioService {
       throw new ConflictException('El usuario ya existe');
     }
 
-    // Generar token de confirmación
-    const token = this.jwtService.sign(
-      { email: dto.email },
-      { secret: process.env.EMAIL_CONFIRMATION_SECRET, expiresIn: '24h' }
-    );
+    // Generar token numérico de 6 dígitos para confirmación
+    const tokenNumerico = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // El token expira en 15 minutos
 
     // ✅ CORRECCIÓN: Lógica específica para ADMINS
     if (dto.rol === 'Admin') {
@@ -64,8 +62,8 @@ export class RegistroUsuarioService {
       // Establecer token de confirmación
       await this.usuarioRepositorio.establecerTokenDeConfirmacion(
         usuarioGuardado.id,
-        token,
-        new Date(Date.now() + 24 * 60 * 60 * 1000)
+        tokenNumerico,
+        expiresAt
       );
 
       // Crear gimnasio automáticamente para admin
@@ -88,7 +86,7 @@ export class RegistroUsuarioService {
 
       // Enviar email de confirmación
       try {
-        await this.emailService.sendConfirmationEmail(dto.email, token);
+        await this.emailService.sendConfirmationEmail(dto.email, tokenNumerico);
         console.log('✅ REGISTRO: Email de confirmación enviado a admin:', dto.email);
       } catch (error) {
         console.error('❌ REGISTRO: Error enviando email a admin:', error);
@@ -121,13 +119,13 @@ export class RegistroUsuarioService {
     // Establecer token de confirmación
     await this.usuarioRepositorio.establecerTokenDeConfirmacion(
       usuarioGuardado.id,
-      token,
-      new Date(Date.now() + 24 * 60 * 60 * 1000)
+      tokenNumerico,
+      expiresAt
     );
 
     // Enviar email de confirmación
     try {
-      await this.emailService.sendConfirmationEmail(dto.email, token);
+      await this.emailService.sendConfirmationEmail(dto.email, tokenNumerico);
       console.log('✅ REGISTRO: Email de confirmación enviado:', dto.email);
     } catch (error) {
       console.error('❌ REGISTRO: Error enviando email:', error);
