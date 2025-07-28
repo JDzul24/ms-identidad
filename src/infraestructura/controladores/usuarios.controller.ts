@@ -23,6 +23,8 @@ import { ModificarClaveGimnasioDto } from '../dtos/modificar-clave-gimnasio.dto'
 import { SincronizarUsuarioService } from '../../aplicacion/servicios/sincronizar-usuario.service';
 import { UsuarioPayload } from '../estrategias/jwt.strategy';
 import { RolUsuario } from '../../dominio/entidades/usuario.entity';
+import { IUsuarioRepositorio } from '../../dominio/repositorios/usuario.repositorio';
+import { ActivarCoachesService } from '../../aplicacion/servicios/activar-coaches.service';
 
 interface RequestConUsuario extends Request {
   user: UsuarioPayload & { nombre: string };
@@ -40,6 +42,10 @@ export class UsuariosController {
     private readonly modificarClaveGimnasioService: ModificarClaveGimnasioService,
     @Inject(SincronizarUsuarioService)
     private readonly sincronizarUsuarioService: SincronizarUsuarioService,
+    @Inject('IUsuarioRepositorio')
+    private readonly usuarioRepositorio: IUsuarioRepositorio,
+    @Inject(ActivarCoachesService)
+    private readonly activarCoachesService: ActivarCoachesService,
   ) {}
 
   @Get('me')
@@ -87,6 +93,33 @@ export class UsuariosController {
     } catch (error) {
       const status = error instanceof HttpException ? error.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
       const message = error instanceof Error ? error.message : 'Error al modificar la clave.';
+      throw new HttpException({ statusCode: status, message }, status);
+    }
+  }
+
+  // ✅ ENDPOINT TEMPORAL PARA ACTIVAR COACHES EXISTENTES
+  @Post('fix-coaches-estado')
+  @HttpCode(HttpStatus.OK)
+  async activarCoachesExistentes(@Req() req: RequestConUsuario) {
+    try {
+      const { userId, rol } = req.user;
+      
+      // Solo Admin puede ejecutar este fix
+      if (rol !== 'Admin') {
+        throw new ForbiddenException('Solo los administradores pueden ejecutar este fix.');
+      }
+
+      // Ejecutar el fix usando el servicio
+      const resultado = await this.activarCoachesService.ejecutar();
+      
+      return {
+        message: 'Coaches activados exitosamente',
+        coachesActivados: resultado.coachesActivados,
+        coachesYaActivos: resultado.coachesYaActivos
+      };
+    } catch (error) {
+      const status = error instanceof HttpException ? error.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+      const message = error instanceof Error ? error.message : 'Error al activar coaches.';
       throw new HttpException({ statusCode: status, message }, status);
     }
   }

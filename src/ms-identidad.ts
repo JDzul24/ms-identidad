@@ -37,6 +37,7 @@ import { ConsultarAsistenciaService } from './aplicacion/servicios/consultar-asi
 import { ActualizarAsistenciaService } from './aplicacion/servicios/actualizar-asistencia.service';
 import { ConsultarRachaService } from './aplicacion/servicios/consultar-racha.service';
 import { ConsultarSolicitudesPendientesService } from './aplicacion/servicios/consultar-solicitudes-pendientes.service';
+import { ActivarCoachesService } from './aplicacion/servicios/activar-coaches.service';
 
 // --- Manejadores de Eventos ---
 import { ManejadorAtletaAprobado } from './aplicacion/manejadores/manejador-atleta-aprobado';
@@ -108,6 +109,7 @@ import { NestjsEventEmitter } from './infraestructura/eventos/nestjs-event-emitt
     ActualizarAsistenciaService,
     ConsultarRachaService,
     ConsultarSolicitudesPendientesService,
+    ActivarCoachesService,
     
 
 
