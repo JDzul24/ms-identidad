@@ -47,8 +47,8 @@ export class AtletasController {
     try {
       const { userId: coachId, rol } = req.user;
 
-      // Doble capa de seguridad, perfecta.
-      if (rol !== 'Entrenador') {
+      // ✅ NUEVA LÓGICA: Permitir tanto Entrenador como Admin
+      if (rol !== 'Entrenador' && rol !== 'Admin') {
         throw new ForbiddenException('No tienes permisos para realizar esta acción.');
       }
 

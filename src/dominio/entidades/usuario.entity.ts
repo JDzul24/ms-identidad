@@ -59,6 +59,13 @@ export class Usuario {
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(props.passwordPlano, saltRounds);
 
+    // ✅ NUEVA LÓGICA: Coaches se crean automáticamente activos
+    const estadoAtleta = props.rol === 'Entrenador' || props.rol === 'Admin' 
+      ? 'activo' 
+      : 'pendiente_datos';
+    
+    const datosFisicosCapturados = props.rol === 'Entrenador' || props.rol === 'Admin';
+
     return new Usuario({
       id,
       email: props.email,
@@ -71,8 +78,8 @@ export class Usuario {
       perfilAtleta: null,
       gimnasio: null,
       emailVerificado: false, // Los nuevos usuarios no están verificados
-      estadoAtleta: 'pendiente_datos',
-      datosFisicosCapturados: false,
+      estadoAtleta,
+      datosFisicosCapturados,
     });
   }
 
@@ -87,6 +94,13 @@ export class Usuario {
     nombre: string;
     rol: RolUsuario;
   }): Usuario {
+    // ✅ NUEVA LÓGICA: Coaches se crean automáticamente activos
+    const estadoAtleta = props.rol === 'Entrenador' || props.rol === 'Admin' 
+      ? 'activo' 
+      : 'pendiente_datos';
+    
+    const datosFisicosCapturados = props.rol === 'Entrenador' || props.rol === 'Admin';
+
     return new Usuario({
       id: props.id,
       email: props.email,
@@ -99,8 +113,8 @@ export class Usuario {
       perfilAtleta: null,
       gimnasio: null,
       emailVerificado: true, // Los usuarios sincronizados se asumen verificados
-      estadoAtleta: 'pendiente_datos',
-      datosFisicosCapturados: false,
+      estadoAtleta,
+      datosFisicosCapturados,
     });
   }
 

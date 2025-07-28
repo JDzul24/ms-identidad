@@ -32,6 +32,20 @@ export class AprobarAtletaService {
     atletaId: string,
     dto: AprobarAtletaDto,
   ): Promise<{ mensaje: string }> {
+    // ✅ NUEVA VALIDACIÓN: Verificar que el coach esté activo
+    const coach = await this.usuarioRepositorio.encontrarPorId(coachId);
+    if (!coach) {
+      throw new NotFoundException('Coach no encontrado.');
+    }
+
+    if (coach.estadoAtleta !== 'activo') {
+      throw new ForbiddenException('El coach debe estar activo para aprobar atletas.');
+    }
+
+    if (coach.rol !== 'Entrenador' && coach.rol !== 'Admin') {
+      throw new ForbiddenException('Solo coaches pueden aprobar atletas.');
+    }
+
     const solicitud = await this.solicitudRepositorio.encontrarPorIdAtleta(
       atletaId,
     );

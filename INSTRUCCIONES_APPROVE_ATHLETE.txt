@@ -1,0 +1,299 @@
+# 🎯 INSTRUCCIONES PARA FRONTEND FLUTTER - APPROVE ATHLETE
+
+## 📋 **ENDPOINT EXACTO DEL BACKEND**
+
+### **URL CORRECTA:**
+```
+POST /identity/v1/atletas/{atletaId}/aprobar
+```
+
+### **Headers requeridos:**
+```
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+```
+
+---
+
+## 🔍 **ESTRUCTURA EXACTA DEL BODY**
+
+### **❌ INCORRECTO (Lo que el frontend está enviando):**
+```json
+{
+  "datosFisicos": {
+    "peso": 80,
+    "estatura": 170,
+    "nivel": "principiante",
+    "guardia": "orthodox",
+    "condicionesMedicas": "Tiene down",
+    "objetivos": "Todo bien"
+  },
+  "datosTutor": {
+    "nombreTutor": "Zuri Jimenez",
+    "telefonoTutor": "9611665392",
+    "relacionTutor": "Padre",
+    "direccionTutor": "Enrique segoviano",
+    "emailTutor": "azur_103@hotmail.com"
+  }
+}
+```
+
+### **✅ CORRECTO (Lo que el backend espera):**
+```json
+{
+  "nivel": "principiante",
+  "alturaCm": 170,
+  "pesoKg": 80,
+  "guardia": "orthodox",
+  "alergias": "Tiene down",
+  "contactoEmergenciaNombre": "Zuri Jimenez",
+  "contactoEmergenciaTelefono": "9611665392"
+}
+```
+
+---
+
+## 📊 **CAMPOS REQUERIDOS Y OPCIONALES**
+
+### **🔴 CAMPOS OBLIGATORIOS:**
+```json
+{
+  "nivel": "string",           // REQUERIDO
+  "alturaCm": number,          // REQUERIDO
+  "pesoKg": number            // REQUERIDO
+}
+```
+
+### **🟡 CAMPOS OPCIONALES:**
+```json
+{
+  "guardia": "string",                    // OPCIONAL
+  "alergias": "string",                   // OPCIONAL
+  "contactoEmergenciaNombre": "string",   // OPCIONAL
+  "contactoEmergenciaTelefono": "string"  // OPCIONAL
+}
+```
+
+---
+
+## 🎯 **EJEMPLO COMPLETO DE REQUEST**
+
+### **URL:**
+```
+POST https://api.capbox.site/identity/v1/atletas/a691bcae-c8ce-4355-be9a-3e9984a0fa61/aprobar
+```
+
+### **Headers:**
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+```
+
+### **Body:**
+```json
+{
+  "nivel": "principiante",
+  "alturaCm": 170,
+  "pesoKg": 80,
+  "guardia": "orthodox",
+  "alergias": "Tiene down",
+  "contactoEmergenciaNombre": "Zuri Jimenez",
+  "contactoEmergenciaTelefono": "9611665392"
+}
+```
+
+### **Response 200:**
+```json
+{
+  "mensaje": "Atleta aprobado y perfil actualizado con éxito."
+}
+```
+
+---
+
+## 🚨 **VALIDACIONES DEL BACKEND**
+
+### **1. Validación de tipos:**
+- `nivel`: string (requerido)
+- `alturaCm`: number (requerido, mínimo 0)
+- `pesoKg`: number (requerido, mínimo 0)
+- `guardia`: string (opcional)
+- `alergias`: string (opcional)
+- `contactoEmergenciaNombre`: string (opcional)
+- `contactoEmergenciaTelefono`: string (opcional)
+
+### **2. Validación de permisos:**
+- ✅ Solo usuarios con rol "Entrenador"
+- ✅ El coach debe tener una solicitud pendiente para el atleta
+- ✅ El atleta debe estar en estado "pendiente_datos"
+
+### **3. Validación de negocio:**
+- ✅ La solicitud no debe estar ya completada
+- ✅ El coach debe ser el mismo que creó la solicitud
+
+---
+
+## 🔧 **CÓDIGOS DE ERROR POSIBLES**
+
+### **400 Bad Request:**
+```json
+{
+  "statusCode": 400,
+  "message": "El nivel del atleta es requerido."
+}
+```
+
+### **403 Forbidden:**
+```json
+{
+  "statusCode": 403,
+  "message": "No tienes permisos para realizar esta acción."
+}
+```
+
+### **404 Not Found:**
+```json
+{
+  "statusCode": 404,
+  "message": "No se encontró una solicitud pendiente para el atleta con ID..."
+}
+```
+
+### **422 Unprocessable Entity:**
+```json
+{
+  "statusCode": 422,
+  "message": "Esta solicitud ya ha sido procesada."
+}
+```
+
+---
+
+## 🎯 **CAMBIOS NECESARIOS EN FLUTTER**
+
+### **1. Cambiar la URL:**
+```dart
+// ❌ INCORRECTO
+String url = '/identity/v1/athletes/$athleteId/approve';
+
+// ✅ CORRECTO
+String url = '/identity/v1/atletas/$athleteId/aprobar';
+```
+
+### **2. Cambiar la estructura del body:**
+```dart
+// ❌ INCORRECTO
+Map<String, dynamic> body = {
+  'datosFisicos': {
+    'peso': peso,
+    'estatura': estatura,
+    'nivel': nivel,
+    'guardia': guardia,
+    'condicionesMedicas': condicionesMedicas,
+    'objetivos': objetivos
+  },
+  'datosTutor': {
+    'nombreTutor': nombreTutor,
+    'telefonoTutor': telefonoTutor,
+    'relacionTutor': relacionTutor,
+    'direccionTutor': direccionTutor,
+    'emailTutor': emailTutor
+  }
+};
+
+// ✅ CORRECTO
+Map<String, dynamic> body = {
+  'nivel': nivel,
+  'alturaCm': estatura,
+  'pesoKg': peso,
+  'guardia': guardia,
+  'alergias': condicionesMedicas,
+  'contactoEmergenciaNombre': nombreTutor,
+  'contactoEmergenciaTelefono': telefonoTutor
+};
+```
+
+### **3. Mapeo de campos:**
+```dart
+// Mapeo de campos del frontend al backend
+String nivel = 'principiante'; // o 'intermedio', 'avanzado'
+int alturaCm = estatura; // convertir a cm
+int pesoKg = peso; // convertir a kg
+String guardia = 'orthodox'; // o 'southpaw', 'switcher'
+String alergias = condicionesMedicas; // usar el campo de condiciones médicas
+String contactoEmergenciaNombre = nombreTutor;
+String contactoEmergenciaTelefono = telefonoTutor;
+```
+
+---
+
+## 🚀 **EJEMPLO DE IMPLEMENTACIÓN EN FLUTTER**
+
+```dart
+Future<void> approveAthlete(String athleteId, Map<String, dynamic> athleteData) async {
+  try {
+    final response = await dio.post(
+      '/identity/v1/atletas/$athleteId/aprobar',
+      data: {
+        'nivel': athleteData['nivel'],
+        'alturaCm': athleteData['estatura'],
+        'pesoKg': athleteData['peso'],
+        'guardia': athleteData['guardia'],
+        'alergias': athleteData['condicionesMedicas'],
+        'contactoEmergenciaNombre': athleteData['nombreTutor'],
+        'contactoEmergenciaTelefono': athleteData['telefonoTutor'],
+      },
+    );
+    
+    print('✅ Atleta aprobado exitosamente');
+    return response.data;
+  } catch (e) {
+    print('❌ Error aprobando atleta: $e');
+    rethrow;
+  }
+}
+```
+
+---
+
+## ✅ **CHECKLIST PARA EL FRONTEND**
+
+- [ ] ✅ Cambiar URL de `/athletes/` a `/atletas/`
+- [ ] ✅ Cambiar URL de `/approve` a `/aprobar`
+- [ ] ✅ Eliminar estructura anidada `datosFisicos` y `datosTutor`
+- [ ] ✅ Usar campos planos en el body
+- [ ] ✅ Mapear `estatura` a `alturaCm`
+- [ ] ✅ Mapear `peso` a `pesoKg`
+- [ ] ✅ Mapear `condicionesMedicas` a `alergias`
+- [ ] ✅ Mapear `nombreTutor` a `contactoEmergenciaNombre`
+- [ ] ✅ Mapear `telefonoTutor` a `contactoEmergenciaTelefono`
+- [ ] ✅ Incluir `Authorization: Bearer <token>` en headers
+- [ ] ✅ Usar `Content-Type: application/json`
+
+---
+
+## 🎯 **RESUMEN**
+
+**El backend espera una estructura FLAT (plana), NO anidada:**
+
+```json
+{
+  "nivel": "string",
+  "alturaCm": number,
+  "pesoKg": number,
+  "guardia": "string",
+  "alergias": "string",
+  "contactoEmergenciaNombre": "string",
+  "contactoEmergenciaTelefono": "string"
+}
+```
+
+**NO esta estructura anidada:**
+```json
+{
+  "datosFisicos": { ... },
+  "datosTutor": { ... }
+}
+```
+
+**¡Con estos cambios el endpoint funcionará correctamente!** 🎉 
