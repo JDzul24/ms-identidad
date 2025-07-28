@@ -16,6 +16,7 @@ import { GestionGimnasiosController } from './infraestructura/controladores/gest
 import { ConfirmacionEmailController } from './infraestructura/controladores/confirmacion-email.controller';
 import { AsistenciaController } from './infraestructura/controladores/asistencia.controller';
 import { RachaController } from './infraestructura/controladores/racha.controller';
+import { SolicitudesPendientesController } from './infraestructura/controladores/solicitudes-pendientes.controller';
 
 // --- Servicios de Aplicación ---
 import { AuthService } from './aplicacion/servicios/auth.service';
@@ -35,6 +36,7 @@ import { InicializacionService } from './aplicacion/servicios/inicializacion.ser
 import { ConsultarAsistenciaService } from './aplicacion/servicios/consultar-asistencia.service';
 import { ActualizarAsistenciaService } from './aplicacion/servicios/actualizar-asistencia.service';
 import { ConsultarRachaService } from './aplicacion/servicios/consultar-racha.service';
+import { ConsultarSolicitudesPendientesService } from './aplicacion/servicios/consultar-solicitudes-pendientes.service';
 
 // --- Manejadores de Eventos ---
 import { ManejadorAtletaAprobado } from './aplicacion/manejadores/manejador-atleta-aprobado';
@@ -84,6 +86,7 @@ import { NestjsEventEmitter } from './infraestructura/eventos/nestjs-event-emitt
     ConfirmacionEmailController,
     AsistenciaController,
     RachaController,
+    SolicitudesPendientesController,
   ],
   providers: [
     // Servicios de Aplicación
@@ -104,6 +107,7 @@ import { NestjsEventEmitter } from './infraestructura/eventos/nestjs-event-emitt
     ConsultarAsistenciaService,
     ActualizarAsistenciaService,
     ConsultarRachaService,
+    ConsultarSolicitudesPendientesService,
     
 
 
