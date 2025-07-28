@@ -118,6 +118,11 @@ export class GestionGimnasiosService {
       
       // Marcar como verificado
       await this.usuarioRepositorio.marcarComoVerificado(admin.id);
+    } else {
+      // Si el usuario existe pero no está verificado, marcarlo como verificado
+      if (!admin.estaVerificado()) {
+        await this.usuarioRepositorio.marcarComoVerificado(admin.id);
+      }
     }
     
     return admin.id;
