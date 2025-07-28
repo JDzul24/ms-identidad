@@ -102,28 +102,22 @@ export class GestionGimnasiosService {
   }
 
   private async obtenerOcrearUsuarioAdmin(): Promise<string> {
-    const adminEmail = 'admin@capbox.site';
-    let admin = await this.usuarioRepositorio.encontrarPorEmail(adminEmail);
+    // Generar un email único para cada gimnasio
+    const timestamp = Date.now();
+    const adminEmail = `admin-gym-${timestamp}@capbox.site`;
     
-    if (!admin) {
-      // Crear usuario admin por defecto
-      admin = await Usuario.crear({
-        email: adminEmail,
-        passwordPlano: 'admin-capbox-2024',
-        nombre: 'Administrador CapBox',
-        rol: 'Admin' as RolUsuario,
-      });
-      
-      await this.usuarioRepositorio.guardar(admin);
-      
-      // Marcar como verificado
-      await this.usuarioRepositorio.marcarComoVerificado(admin.id);
-    } else {
-      // Si el usuario existe pero no está verificado, marcarlo como verificado
-      if (!admin.estaVerificado()) {
-        await this.usuarioRepositorio.marcarComoVerificado(admin.id);
-      }
-    }
+    // Crear usuario admin único para este gimnasio
+    const admin = await Usuario.crear({
+      email: adminEmail,
+      passwordPlano: 'admin-capbox-2024',
+      nombre: `Administrador Gimnasio ${timestamp}`,
+      rol: 'Admin' as RolUsuario,
+    });
+    
+    await this.usuarioRepositorio.guardar(admin);
+    
+    // Marcar como verificado
+    await this.usuarioRepositorio.marcarComoVerificado(admin.id);
     
     return admin.id;
   }
