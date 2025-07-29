@@ -1,0 +1,100 @@
+🔧 INSTRUCCIONES DEBUG ERROR 403 - FRONTEND FLUTTER
+
+📋 PROBLEMA:
+El coach está recibiendo error 403 al intentar aprobar atletas, incluso después del auto-fix.
+
+🔍 SOLUCIÓN TEMPORAL - ENDPOINT DE DEBUG:
+He agregado un endpoint de debug para diagnosticar exactamente qué está fallando.
+
+📡 ENDPOINT DE DEBUG:
+GET https://api.capbox.site/identity/v1/atletas/debug/solicitud/{atletaId}
+
+🔑 HEADERS REQUERIDOS:
+Authorization: Bearer <token-del-coach>
+
+📝 EJEMPLO DE USO:
+URL: https://api.capbox.site/identity/v1/atletas/debug/solicitud/dc7d78a2-aa06-48ef-a9d2-7d761322a71b
+Headers: Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+📊 RESPUESTA ESPERADA:
+{
+  "coach": {
+    "id": "coach-id",
+    "email": "coach@example.com",
+    "nombre": "Coach Name",
+    "rol": "Entrenador",
+    "estadoAtleta": "activo",
+    "datosFisicosCapturados": true
+  },
+  "atleta": {
+    "id": "atleta-id",
+    "email": "atleta@example.com",
+    "nombre": "Atleta Name",
+    "rol": "Atleta",
+    "estadoAtleta": "pendiente_datos",
+    "datosFisicosCapturados": false
+  },
+  "solicitud": {
+    "id": "solicitud-id",
+    "atletaId": "atleta-id",
+    "coachId": "coach-id",
+    "status": "PENDIENTE",
+    "requestedAt": "2025-01-29T..."
+  },
+  "validaciones": {
+    "coachExiste": true,
+    "coachActivo": true,
+    "coachPuedeAprobar": true,
+    "solicitudExiste": true,
+    "solicitudPendiente": true,
+    "coachEsDueño": true
+  }
+}
+
+🔍 QUÉ REVISAR EN LAS VALIDACIONES:
+- coachExiste: Debe ser true
+- coachActivo: Debe ser true (si es false, el auto-fix no funcionó)
+- coachPuedeAprobar: Debe ser true
+- solicitudExiste: Debe ser true
+- solicitudPendiente: Debe ser true
+- coachEsDueño: Debe ser true
+
+❌ SI ALGUNA VALIDACIÓN ES FALSE:
+- coachActivo = false: El coach no está activo, problema con auto-fix
+- solicitudExiste = false: No hay solicitud para este atleta
+- coachEsDueño = false: La solicitud no pertenece a este coach
+- solicitudPendiente = false: La solicitud ya fue procesada
+
+🚀 IMPLEMENTACIÓN EN FLUTTER:
+```dart
+Future<Map<String, dynamic>> debugSolicitud(String atletaId) async {
+  try {
+    final response = await dio.get(
+      '/identity/v1/atletas/debug/solicitud/$atletaId',
+      options: Options(
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      ),
+    );
+    
+    print('🔍 DEBUG RESPONSE: ${response.data}');
+    return response.data;
+  } catch (e) {
+    print('❌ DEBUG ERROR: $e');
+    rethrow;
+  }
+}
+```
+
+📱 USO EN LA APP:
+1. Cuando ocurra error 403, llamar a este endpoint
+2. Imprimir la respuesta completa en logs
+3. Revisar las validaciones para identificar el problema
+4. Enviar los logs al backend para análisis
+
+🎯 OBJETIVO:
+Identificar exactamente qué validación está fallando para poder corregir el problema específico.
+
+⚠️ IMPORTANTE:
+Este endpoint es temporal para debug. Una vez identificado el problema, se corregirá en el backend. 

@@ -26,4 +26,22 @@ export interface ISolicitudRepositorio {
    * @param solicitud - La entidad SolicitudDatos con el estado modificado.
    */
   actualizar(solicitud: SolicitudDatos): Promise<void>;
+
+  /**
+   * Elimina una solicitud por su ID.
+   * @param id - El ID de la solicitud a eliminar.
+   */
+  eliminar(id: string): Promise<void>;
+
+  /**
+   * Crea una nueva solicitud con los datos proporcionados.
+   * @param datos - Los datos para crear la nueva solicitud.
+   * @returns La solicitud creada.
+   */
+  crear(datos: {
+    atletaId: string;
+    coachId: string;
+    status: 'PENDIENTE' | 'COMPLETADA';
+    requestedAt: Date;
+  }): Promise<SolicitudDatos>;
 }

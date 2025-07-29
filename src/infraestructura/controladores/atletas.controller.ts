@@ -144,6 +144,69 @@ export class AtletasController {
   }
 
   /**
+   * Endpoint para limpiar solicitudes conflictivas y crear una nueva para el coach actual
+   * POST /atletas/:atletaId/limpiar-solicitud
+   */
+  @Post(':atletaId/limpiar-solicitud')
+  @HttpCode(HttpStatus.OK)
+  async limpiarSolicitudConflictiva(
+    @Req() req: RequestConUsuario,
+    @Param('atletaId', ParseUUIDPipe) atletaId: string,
+  ) {
+    try {
+      const { userId: coachId, rol } = req.user;
+
+      // ✅ Permitir tanto Entrenador como Admin
+      if (rol !== 'Entrenador' && rol !== 'Admin') {
+        throw new ForbiddenException('No tienes permisos para realizar esta acción.');
+      }
+
+      // Obtener solicitud existente
+      const solicitudExistente = await this.solicitudRepositorio.encontrarPorIdAtleta(atletaId);
+      
+      if (solicitudExistente) {
+        // Eliminar solicitud existente
+        await this.solicitudRepositorio.eliminar(solicitudExistente.id);
+        console.log(`🗑️ SOLICITUD: Eliminada solicitud conflictiva ${solicitudExistente.id} para atleta ${atletaId}`);
+      }
+
+      // Crear nueva solicitud para el coach actual
+      const nuevaSolicitud = await this.solicitudRepositorio.crear({
+        atletaId,
+        coachId,
+        status: 'PENDIENTE',
+        requestedAt: new Date(),
+      });
+
+      console.log(`✅ SOLICITUD: Nueva solicitud creada ${nuevaSolicitud.id} para coach ${coachId} y atleta ${atletaId}`);
+
+      return {
+        message: 'Solicitud conflictiva eliminada y nueva solicitud creada',
+        solicitudAnterior: solicitudExistente ? {
+          id: solicitudExistente.id,
+          coachId: solicitudExistente.coachId,
+          status: solicitudExistente.status,
+        } : null,
+        nuevaSolicitud: {
+          id: nuevaSolicitud.id,
+          coachId: nuevaSolicitud.coachId,
+          status: nuevaSolicitud.status,
+        }
+      };
+    } catch (error) {
+      const status =
+        error instanceof HttpException
+          ? error.getStatus()
+          : HttpStatus.INTERNAL_SERVER_ERROR;
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Ocurrió un error inesperado al limpiar la solicitud.';
+      throw new HttpException({ statusCode: status, message }, status);
+    }
+  }
+
+  /**
    * Endpoint protegido para que un entrenador apruebe a un nuevo atleta.
    * POST /atletas/:atletaId/aprobar
    */

@@ -3,6 +3,7 @@ import { PrismaService } from './prisma.service';
 import { ISolicitudRepositorio } from '../../dominio/repositorios/solicitud.repositorio';
 import { SolicitudDatos } from '../../dominio/entidades/solicitud-datos.entity';
 import { AthleteDataCaptureRequest } from '@prisma/client';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class PrismaSolicitudRepositorio implements ISolicitudRepositorio {
@@ -69,6 +70,31 @@ export class PrismaSolicitudRepositorio implements ISolicitudRepositorio {
         status: solicitud.status,
       },
     });
+  }
+
+  public async eliminar(id: string): Promise<void> {
+    await this.prisma.athleteDataCaptureRequest.delete({
+      where: { id },
+    });
+  }
+
+  public async crear(datos: {
+    atletaId: string;
+    coachId: string;
+    status: 'PENDIENTE' | 'COMPLETADA';
+    requestedAt: Date;
+  }): Promise<SolicitudDatos> {
+    const solicitudDb = await this.prisma.athleteDataCaptureRequest.create({
+      data: {
+        id: randomUUID(),
+        athleteId: datos.atletaId,
+        coachId: datos.coachId,
+        status: datos.status,
+        requestedAt: datos.requestedAt,
+      },
+    });
+
+    return this.mapearADominio(solicitudDb);
   }
 
   private mapearADominio(

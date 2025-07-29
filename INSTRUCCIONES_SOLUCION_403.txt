@@ -1,0 +1,103 @@
+🔧 SOLUCIÓN ERROR 403 - INSTRUCCIONES FRONTEND
+
+📋 PROBLEMA IDENTIFICADO:
+El error 403 ocurre porque la solicitud del atleta pertenece a un coach diferente.
+En los logs se ve:
+- Coach actual: 451da93f-927d-433e-b770-dcf59d7fbc3f
+- Solicitud coachId: 819e60bf-0b19-426a-9d59-a467d5b327ae
+- Validación: coachEsDueño: false
+
+✅ SOLUCIÓN IMPLEMENTADA:
+He creado un endpoint para limpiar solicitudes conflictivas y crear una nueva para el coach actual.
+
+📡 NUEVO ENDPOINT:
+POST https://api.capbox.site/identity/v1/atletas/{atletaId}/limpiar-solicitud
+
+🔑 HEADERS:
+Authorization: Bearer <token-del-coach>
+
+📝 EJEMPLO DE USO:
+URL: POST https://api.capbox.site/identity/v1/atletas/dc7d78a2-aa06-48ef-a9d2-7d761322a71b/limpiar-solicitud
+Headers: Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+📊 RESPUESTA ESPERADA:
+{
+  "message": "Solicitud conflictiva eliminada y nueva solicitud creada",
+  "solicitudAnterior": {
+    "id": "e346f9fc-8c14-450e-8126-72ce901e217d",
+    "coachId": "819e60bf-0b19-426a-9d59-a467d5b327ae",
+    "status": "PENDIENTE"
+  },
+  "nuevaSolicitud": {
+    "id": "nuevo-uuid-generado",
+    "coachId": "451da93f-927d-433e-b770-dcf59d7fbc3f",
+    "status": "PENDIENTE"
+  }
+}
+
+🚀 IMPLEMENTACIÓN EN FLUTTER:
+```dart
+Future<Map<String, dynamic>> limpiarSolicitudConflictiva(String atletaId) async {
+  try {
+    final response = await dio.post(
+      '/identity/v1/atletas/$atletaId/limpiar-solicitud',
+      options: Options(
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      ),
+    );
+    
+    print('🔧 LIMPIEZA: ${response.data}');
+    return response.data;
+  } catch (e) {
+    print('❌ LIMPIEZA ERROR: $e');
+    rethrow;
+  }
+}
+```
+
+📱 FLUJO DE USO EN LA APP:
+1. Cuando ocurra error 403, primero llamar al endpoint de debug
+2. Si coachEsDueño = false, llamar al endpoint de limpieza
+3. Después de la limpieza, intentar aprobar el atleta nuevamente
+
+🔧 CÓDIGO COMPLETO PARA FLUTTER:
+```dart
+Future<void> aprobarAtletaConLimpieza(String atletaId, Map<String, dynamic> datos) async {
+  try {
+    // 1. Intentar aprobar directamente
+    await aprobarAtleta(atletaId, datos);
+  } catch (e) {
+    if (e.toString().contains('403')) {
+      print('🔧 Error 403 detectado, ejecutando limpieza...');
+      
+      // 2. Ejecutar debug para confirmar el problema
+      final debugInfo = await debugSolicitud(atletaId);
+      print('🔍 DEBUG: $debugInfo');
+      
+      // 3. Si coachEsDueño = false, limpiar solicitud
+      if (debugInfo['validaciones']['coachEsDueño'] == false) {
+        print('🔧 Ejecutando limpieza de solicitud conflictiva...');
+        await limpiarSolicitudConflictiva(atletaId);
+        
+        // 4. Reintentar aprobación
+        print('🔄 Reintentando aprobación después de limpieza...');
+        await aprobarAtleta(atletaId, datos);
+      } else {
+        rethrow; // Otro tipo de error 403
+      }
+    } else {
+      rethrow; // Otro tipo de error
+    }
+  }
+}
+```
+
+🎯 OBJETIVO:
+Eliminar la solicitud conflictiva y crear una nueva para el coach actual, permitiendo que pueda aprobar al atleta.
+
+⚠️ IMPORTANTE:
+- Este endpoint es seguro y solo elimina solicitudes pendientes
+- Crea automáticamente una nueva solicitud para el coach actual
+- No afecta datos del atleta, solo las solicitudes de aprobación 
