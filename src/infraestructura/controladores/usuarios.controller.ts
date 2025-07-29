@@ -104,9 +104,9 @@ export class UsuariosController {
     try {
       const { userId, rol } = req.user;
       
-      // Solo Admin puede ejecutar este fix
-      if (rol !== 'Admin') {
-        throw new ForbiddenException('Solo los administradores pueden ejecutar este fix.');
+      // ✅ CORRECCIÓN: Permitir tanto Admin como Entrenador
+      if (rol !== 'Admin' && rol !== 'Entrenador') {
+        throw new ForbiddenException('Solo los administradores y entrenadores pueden ejecutar este fix.');
       }
 
       // Ejecutar el fix usando el servicio

@@ -1,0 +1,69 @@
+CORRECCIÓN IMPLEMENTADA - INSTRUCCIONES PARA FRONTEND
+=====================================================
+
+PROBLEMA RESUELTO:
+=================
+Los usuarios no se asociaban correctamente a gimnasios y aparecían errores de "Unique constraint failed" en el backend.
+
+CAMBIOS REALIZADOS:
+==================
+
+1. CORRECCIÓN DE ASOCIACIÓN DE USUARIOS A GIMNASIOS
+   - Admins: Ahora tienen relación "ownedGym" (son dueños del gimnasio)
+   - Entrenadores/Atletas: Tienen relación "gyms" (son miembros del gimnasio)
+   - Auto-creación: Los admins obtienen un gimnasio automáticamente al registrarse
+
+2. CORRECCIÓN DEL MÉTODO GUARDAR
+   - Cambiado de create() a upsert() para manejar usuarios existentes
+   - Agregados campos faltantes: email_verificado, estado_atleta, datos_fisicos_capturados
+
+FLUJO DE TRABAJO ACTUALIZADO:
+============================
+
+PARA ADMINISTRADORES:
+1. Se registran/loguean → Se crea automáticamente un gimnasio
+2. El gimnasio se asocia mediante "ownedGym"
+3. Pueden obtener/modificar la clave del gimnasio
+4. La clave se usa para que Entrenadores y Atletas se asocien
+
+PARA ENTRENADORES:
+1. Necesitan la clave del gimnasio para asociarse
+2. Se asocian mediante "gyms" (UserGymRelation)
+3. Pueden ver la clave del gimnasio una vez asociados
+
+PARA ATLETAS:
+1. Necesitan la clave del gimnasio para asociarse
+2. Se asocian mediante "gyms" (UserGymRelation)
+3. Se crea automáticamente una solicitud de aprobación
+
+RESPUESTA DEL API CORREGIDA:
+============================
+{
+  "id": "user-id",
+  "email": "user@example.com",
+  "nombre": "User Name",
+  "rol": "Admin|Entrenador|Atleta",
+  "gimnasio": {
+    "id": "gym-id",
+    "nombre": "Gym Name"
+  },
+  "estado_atleta": "activo",
+  "datos_fisicos_capturados": true
+}
+
+ENDPOINTS AFECTADOS:
+===================
+- POST /oauth/token - Login
+- GET /usuarios/me - Perfil de usuario
+- GET /usuarios/gimnasio/clave - Obtener clave de gimnasio
+- PATCH /usuarios/gimnasio/clave - Modificar clave de gimnasio
+- POST /gimnasios/vincular - Vincular a gimnasio
+
+ESTADO ACTUAL:
+==============
+- ✅ Errores de "Unique constraint failed" eliminados
+- ✅ Activación automática de admins y coaches funciona
+- ✅ Asociación correcta de usuarios a gimnasios
+- ✅ Cambios subidos a Git y desplegados
+
+El sistema ahora maneja correctamente la asociación de usuarios a gimnasios según su rol. 
