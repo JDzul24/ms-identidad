@@ -40,7 +40,7 @@ export class AtletasController {
   ) {}
 
   /**
-   * Endpoint de prueba para verificar el estado del coach y las solicitudes
+   * Endpoint de debug para verificar el estado del coach y las solicitudes específicas
    * GET /atletas/debug/coach-status
    */
   @Get('debug/coach-status')
@@ -77,6 +77,68 @@ export class AtletasController {
     } catch (error) {
       const status = error instanceof HttpException ? error.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
       const message = error instanceof Error ? error.message : 'Error al obtener información del coach.';
+      throw new HttpException({ statusCode: status, message }, status);
+    }
+  }
+
+  /**
+   * Endpoint de debug para verificar una solicitud específica
+   * GET /atletas/debug/solicitud/:atletaId
+   */
+  @Get('debug/solicitud/:atletaId')
+  @HttpCode(HttpStatus.OK)
+  async debugSolicitud(
+    @Req() req: RequestConUsuario,
+    @Param('atletaId', ParseUUIDPipe) atletaId: string,
+  ) {
+    try {
+      const { userId: coachId } = req.user;
+
+      // Obtener información del coach
+      const coach = await this.usuarioRepositorio.encontrarPorId(coachId);
+      
+      // Obtener solicitud específica del atleta
+      const solicitud = await this.solicitudRepositorio.encontrarPorIdAtleta(atletaId);
+
+      // Obtener información del atleta
+      const atleta = await this.usuarioRepositorio.encontrarPorId(atletaId);
+
+      return {
+        coach: {
+          id: coach?.id,
+          email: coach?.email,
+          nombre: coach?.nombre,
+          rol: coach?.rol,
+          estadoAtleta: coach?.estadoAtleta,
+          datosFisicosCapturados: coach?.datosFisicosCapturados,
+        },
+        atleta: {
+          id: atleta?.id,
+          email: atleta?.email,
+          nombre: atleta?.nombre,
+          rol: atleta?.rol,
+          estadoAtleta: atleta?.estadoAtleta,
+          datosFisicosCapturados: atleta?.datosFisicosCapturados,
+        },
+        solicitud: solicitud ? {
+          id: solicitud.id,
+          atletaId: solicitud.atletaId,
+          coachId: solicitud.coachId,
+          status: solicitud.status,
+          requestedAt: solicitud.requestedAt,
+        } : null,
+        validaciones: {
+          coachExiste: !!coach,
+          coachActivo: coach?.estadoAtleta === 'activo',
+          coachPuedeAprobar: coach?.rol === 'Entrenador' || coach?.rol === 'Admin',
+          solicitudExiste: !!solicitud,
+          solicitudPendiente: solicitud?.status === 'PENDIENTE',
+          coachEsDueño: solicitud?.coachId === coachId,
+        }
+      };
+    } catch (error) {
+      const status = error instanceof HttpException ? error.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+      const message = error instanceof Error ? error.message : 'Error al obtener información de la solicitud.';
       throw new HttpException({ statusCode: status, message }, status);
     }
   }
