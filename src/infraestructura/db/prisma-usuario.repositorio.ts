@@ -53,8 +53,20 @@ export class PrismaUsuarioRepositorio implements IUsuarioRepositorio {
   }
 
   public async guardar(usuario: Usuario): Promise<Usuario> {
-    const usuarioGuardadoDb = await this.prisma.user.create({
-      data: {
+    const usuarioGuardadoDb = await this.prisma.user.upsert({
+      where: { id: usuario.id },
+      update: {
+        email: usuario.email,
+        password_hash: usuario.obtenerPasswordHash(),
+        name: usuario.nombre,
+        role: usuario.rol,
+        refresh_token_hash: usuario.refreshTokenHash,
+        fcm_token: usuario.fcmToken,
+        email_verificado: usuario.estaVerificado(),
+        estado_atleta: usuario.estadoAtleta,
+        datos_fisicos_capturados: usuario.datosFisicosCapturados,
+      },
+      create: {
         id: usuario.id,
         email: usuario.email,
         password_hash: usuario.obtenerPasswordHash(),
@@ -62,6 +74,9 @@ export class PrismaUsuarioRepositorio implements IUsuarioRepositorio {
         role: usuario.rol,
         refresh_token_hash: usuario.refreshTokenHash,
         fcm_token: usuario.fcmToken,
+        email_verificado: usuario.estaVerificado(),
+        estado_atleta: usuario.estadoAtleta,
+        datos_fisicos_capturados: usuario.datosFisicosCapturados,
       },
     });
     const usuarioCompleto = await this.encontrarPorId(usuarioGuardadoDb.id);

@@ -26,12 +26,10 @@ export class SolicitudesController {
     try {
       const { userId, rol } = req.user;
 
-      // ✅ VALIDACIÓN SIMPLIFICADA: Solo verificar que sea coach o admin
-      if (rol !== 'Entrenador' && rol !== 'Admin') {
-        throw new ForbiddenException('Solo coaches y admins pueden ver solicitudes pendientes.');
+      // Lógica de autorización explícita, muy segura.
+      if (rol !== 'Entrenador') {
+        throw new ForbiddenException('No tienes permisos para realizar esta acción.');
       }
-
-      // ✅ NO validar estadoAtleta del coach
 
       return this.consultarSolicitudesService.ejecutar(userId);
     } catch (error) {
