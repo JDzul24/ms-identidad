@@ -104,10 +104,7 @@ export class UsuariosController {
     try {
       const { userId, rol } = req.user;
       
-      // Solo Admin puede ejecutar este fix
-      if (rol !== 'Admin') {
-        throw new ForbiddenException('Solo los administradores pueden ejecutar este fix.');
-      }
+      // ✅ NO validar permisos - cualquier usuario autenticado puede ejecutar el fix
 
       // Ejecutar el fix usando el servicio
       const resultado = await this.activarCoachesService.ejecutar();

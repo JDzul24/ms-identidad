@@ -32,18 +32,15 @@ export class AprobarAtletaService {
     atletaId: string,
     dto: AprobarAtletaDto,
   ): Promise<{ mensaje: string }> {
-    // ✅ NUEVA VALIDACIÓN: Verificar que el coach esté activo
+    // ✅ NUEVA VALIDACIÓN SIMPLIFICADA: Solo verificar que sea coach o admin
     const coach = await this.usuarioRepositorio.encontrarPorId(coachId);
     if (!coach) {
       throw new NotFoundException('Coach no encontrado.');
     }
 
-    if (coach.estadoAtleta !== 'activo') {
-      throw new ForbiddenException('El coach debe estar activo para aprobar atletas.');
-    }
-
+    // ✅ ELIMINADA VALIDACIÓN DE estadoAtleta - coaches siempre pueden aprobar
     if (coach.rol !== 'Entrenador' && coach.rol !== 'Admin') {
-      throw new ForbiddenException('Solo coaches pueden aprobar atletas.');
+      throw new ForbiddenException('Solo coaches y admins pueden aprobar atletas.');
     }
 
     const solicitud = await this.solicitudRepositorio.encontrarPorIdAtleta(
