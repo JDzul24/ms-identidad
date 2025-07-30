@@ -53,6 +53,9 @@ export class ConsultarMiembrosService {
         rol: miembro.rol,
         // Si el miembro es un atleta y tiene un perfil, añadimos su nivel.
         nivel: miembro.perfilAtleta ? miembro.perfilAtleta.nivel : null,
+        // ✅ AGREGADO: Estado del atleta y datos físicos capturados
+        estado_atleta: miembro.estadoAtleta || 'pendiente_datos',
+        datos_fisicos_capturados: miembro.datosFisicosCapturados || false,
       };
       return miembroDto;
     });

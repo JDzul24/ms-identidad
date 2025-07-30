@@ -27,4 +27,16 @@ export class MiembroGimnasioDto {
    * Es opcional, ya que los entrenadores no tienen nivel.
    */
   nivel?: string | null;
+
+  /**
+   * El estado del atleta (pendiente_datos, activo, inactivo).
+   * Solo aplica para usuarios con rol 'Atleta'.
+   */
+  estado_atleta?: string;
+
+  /**
+   * Indica si los datos físicos del atleta han sido capturados.
+   * Solo aplica para usuarios con rol 'Atleta'.
+   */
+  datos_fisicos_capturados?: boolean;
 }

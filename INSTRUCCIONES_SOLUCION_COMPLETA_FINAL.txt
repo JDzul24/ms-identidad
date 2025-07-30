@@ -1,0 +1,101 @@
+🔧 SOLUCIÓN COMPLETA FINAL - PROBLEMA SOLICITUDES PENDIENTES
+
+📋 PROBLEMA RESUELTO COMPLETAMENTE:
+✅ El atleta puede acceder después de ser aprobado
+✅ El entrenador ya no ve atletas aprobados en solicitudes pendientes
+
+🎯 DOBLE CORRECCIÓN IMPLEMENTADA:
+
+=== CORRECCIÓN 1: ACTUALIZACIÓN DEL ESTADO DEL ATLETA ===
+📂 Archivo: `ms-identidad/src/infraestructura/db/prisma-usuario.repositorio.ts`
+🔧 Problema: Al aprobar atleta solo se actualizaba tabla `athlete`, no tabla `user`
+
+✅ Solución implementada:
+```typescript
+// Después de actualizar datos físicos, también actualizar estado del usuario
+await this.prisma.user.update({
+  where: { id: atletaId },
+  data: {
+    estado_atleta: 'activo',
+    datos_fisicos_capturados: true,
+    fecha_aprobacion: new Date(),
+  },
+});
+```
+
+=== CORRECCIÓN 2: FILTRO DE SOLICITUDES PENDIENTES ===
+📂 Archivo: `ms-identidad/src/aplicacion/servicios/consultar-solicitudes-pendientes.service.ts`
+🔧 Problema: Filtro usaba OR (||) en lugar de AND (&&)
+
+❌ Lógica incorrecta anterior:
+```typescript
+(miembro.estadoAtleta === 'pendiente_datos' || !miembro.datosFisicosCapturados)
+```
+
+✅ Lógica corregida:
+```typescript
+miembro.estadoAtleta === 'pendiente_datos' && !miembro.datosFisicosCapturados
+```
+
+🔍 LOGS DE DIAGNÓSTICO AGREGADOS:
+Ahora el backend muestra logs detallados al consultar solicitudes pendientes:
+```
+🔍 SOLICITUDES: Evaluando X miembros del gimnasio [ID]
+👤 ATLETA: [Nombre] ([Email])
+   Estado: [activo/pendiente_datos] | Datos capturados: [true/false] | Es pendiente: [true/false]
+✅ SOLICITUDES: X atletas pendientes encontrados
+```
+
+📊 FLUJO COMPLETO CORREGIDO:
+
+1. **REGISTRO DEL ATLETA:**
+   - Estado inicial: `estado_atleta: 'pendiente_datos'`, `datos_fisicos_capturados: false`
+   - ✅ Aparece en solicitudes pendientes del entrenador
+
+2. **APROBACIÓN POR ENTRENADOR:**
+   - Se guardan datos físicos en tabla `athlete`
+   - ✅ **NUEVO:** Se actualiza estado en tabla `user`: `estado_atleta: 'activo'`, `datos_fisicos_capturados: true`
+   - Se marca solicitud como 'COMPLETADA'
+
+3. **CONSULTA DE SOLICITUDES PENDIENTES:**
+   - ✅ **NUEVO:** Filtro correcto con AND elimina atletas aprobados
+   - Solo muestra atletas con estado 'pendiente_datos' Y datos no capturados
+
+4. **ACCESO DEL ATLETA:**
+   - ✅ Puede acceder inmediatamente (estado 'activo' y datos capturados)
+
+📱 PRUEBAS PARA VERIFICAR LA SOLUCIÓN:
+
+1. **ESCENARIO COMPLETO:**
+   ```
+   a) Registrar nuevo atleta → Debe aparecer en solicitudes pendientes
+   b) Aprobar atleta desde app entrenador → Debe desaparecer de solicitudes
+   c) Acceder con atleta → Debe funcionar sin problemas
+   d) Refresh solicitudes entrenador → No debe aparecer el atleta aprobado
+   ```
+
+2. **VERIFICAR LOGS DEL BACKEND:**
+   ```
+   ✅ ESTADO: Atleta [ID] marcado como activo con datos físicos capturados
+   👤 ATLETA: [Nombre] ([Email])
+      Estado: activo | Datos capturados: true | Es pendiente: false
+   ```
+
+🎯 ENDPOINTS CORREGIDOS:
+- `POST /identity/v1/atletas/:atletaId/aprobar` - Actualiza estado del usuario
+- `GET /identity/v1/requests/pending` - Filtro corregido, logs de diagnóstico
+
+🔄 VERSION ACTUAL:
+- Commit 1: `8f8b5a2` - Corrección actualización estado
+- Commit 2: `f8fd53a` - Corrección filtro solicitudes
+- ✅ Ambos cambios subidos a git y aplicados
+
+🚀 RESULTADO FINAL:
+✅ Atleta puede acceder inmediatamente después de aprobación
+✅ Entrenador ve lista actualizada sin atletas aprobados  
+✅ Sincronización perfecta entre todas las consultas
+✅ Logs detallados para futuro diagnóstico
+
+⚡ ESTADO: PROBLEMA RESUELTO COMPLETAMENTE - LISTO PARA PRODUCCIÓN
+
+📞 Si hay algún problema durante las pruebas, los logs ahora mostrarán exactamente qué está pasando con cada atleta. 

@@ -201,6 +201,9 @@ export class PrismaGimnasioRepositorio implements IGimnasioRepositorio {
       perfilAtleta: perfilAtletaDominio,
       gimnasio: null,
       emailVerificado: usuarioDb.email_verificado,
+      // ✅ FIX: Incluir campos de estado del atleta
+      estadoAtleta: usuarioDb.estado_atleta,
+      datosFisicosCapturados: usuarioDb.datos_fisicos_capturados,
     });
   }
 }
