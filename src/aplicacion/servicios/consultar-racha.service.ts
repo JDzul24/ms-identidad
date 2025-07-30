@@ -74,12 +74,14 @@ export class ConsultarRachaService {
             status: status,
           });
         } catch (error) {
-          this.logger.warn(`Error al obtener asistencia para fecha ${fecha}:`, error);
+          // Calcular la fecha para el error log y datos por defecto
+          const fechaError = new Date(hoy);
+          fechaError.setDate(fechaError.getDate() - i);
+          this.logger.warn(`Error al obtener asistencia para fecha ${fechaError.toISOString().split('T')[0]}:`, error);
+          
           // Añadir entrada con datos por defecto
-          const fecha = new Date(hoy);
-          fecha.setDate(fecha.getDate() - i);
           diasConsecutivos.push({
-            fecha: fecha.toISOString().split('T')[0],
+            fecha: fechaError.toISOString().split('T')[0],
             status: null,
           });
         }
