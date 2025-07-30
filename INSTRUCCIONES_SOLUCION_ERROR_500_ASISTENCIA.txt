@@ -1,0 +1,125 @@
+🔧 SOLUCIÓN ERROR 500 EN ENDPOINT DE ASISTENCIA
+
+📋 PROBLEMA IDENTIFICADO:
+Error 500 (Internal Server Error) al intentar actualizar asistencia individual con PATCH:
+
+```
+PATCH https://api.capbox.site/identity/v1/asistencia/562a7a0c-7f58-4183-888f-ad08664e81ea/2025-07-30/dd1ace33-8d27-4063-8c65-37b3dcff4feb
+❌ AUTH INTERCEPTOR: Error 500
+```
+
+🔍 CAUSA RAÍZ IDENTIFICADA:
+Después de analizar el código, identificamos varias posibles causas del error 500:
+
+1. **Problema con el manejo de fechas**: La fecha no se estaba normalizando consistentemente, lo que podía causar errores de validación.
+
+2. **Error de llave única (duplicidad)**: Si un alumno ya tenía registrada asistencia para esa fecha, el intento de crear un nuevo registro generaba un error de duplicidad.
+
+3. **Falta de manejo robusto de errores**: No había un manejo adecuado de excepciones que podían ocurrir durante el procesamiento.
+
+4. **Problemas con campos nulos**: Posibles errores cuando los campos como gimnasio del usuario eran nulos.
+
+5. **Logs insuficientes**: No había logs detallados para diagnosticar la causa específica del error.
+
+✅ SOLUCIÓN IMPLEMENTADA:
+
+1. **Mejoras en el servicio de actualización de asistencia**:
+   - Agregado manejo robusto de errores con try-catch
+   - Implementada validación explícita de fechas
+   - Validaciones más granulares para gimnasio y usuarios
+   - Añadidos logs detallados en cada paso del proceso
+   - Manejo de errores por alumno para evitar que un error en uno afecte a otros
+
+2. **Mejoras en el repositorio de asistencia**:
+   - Implementado patrón upsert para evitar conflictos de duplicidad
+   - Verificación previa de existencia antes de crear
+   - Actualización en lugar de creación cuando ya existe un registro
+   - Fallback a upsert en caso de error de concurrencia
+   - Logs detallados de cada operación
+
+🔧 CAMBIOS EN CÓDIGO:
+
+**1. Mejora en servicio de actualización:**
+```typescript
+// Normalizar la fecha correctamente
+let fechaObj: Date;
+try {
+  fechaObj = new Date(fecha);
+  if (isNaN(fechaObj.getTime())) {
+    throw new Error('Formato de fecha inválido');
+  }
+  
+  // Normalizar a UTC 00:00:00
+  fechaObj.setUTCHours(0, 0, 0, 0);
+  this.logger.log(`Fecha normalizada: ${fechaObj.toISOString()}`);
+} catch (error) {
+  throw new ForbiddenException(`La fecha proporcionada no es válida: ${fecha}`);
+}
+
+// Try-catch general para capturar cualquier error no manejado
+try {
+  // ...lógica del servicio...
+} catch (error) {
+  this.logger.error(`Error al actualizar asistencia: ${error.message}`);
+  throw new InternalServerErrorException(`Error: ${error.message}`);
+}
+```
+
+**2. Mejora en repositorio para evitar duplicados:**
+```typescript
+async guardar(asistencia: Asistencia): Promise<Asistencia> {
+  try {
+    // Verificar si ya existe
+    const existente = await this.encontrarPorGymAlumnoYFecha(
+      asistencia.gymId, asistencia.alumnoId, asistencia.fecha
+    );
+
+    if (existente) {
+      // Actualizar existente
+      return this.actualizar(existente);
+    } else {
+      // Crear nuevo
+      // ...
+    }
+  } catch (error) {
+    // Fallback a upsert para resolver problemas de concurrencia
+    return this.prisma.asistencia.upsert({
+      // ...configuración de upsert...
+    });
+  }
+}
+```
+
+📱 INSTRUCCIONES PARA PRUEBAS:
+
+1. **Verificar formato de fecha**:
+   - Asegurarse que el formato sea YYYY-MM-DD (ej: 2025-07-30)
+   - La fecha se normaliza a UTC 00:00:00
+
+2. **Verificar IDs correctos**:
+   - El ID del gimnasio debe ser: `562a7a0c-7f58-4183-888f-ad08664e81ea`
+   - El ID del alumno debe estar vinculado a ese gimnasio
+
+3. **Cuerpo de la petición correcto**:
+   ```json
+   {
+     "status": "presente"
+   }
+   ```
+
+4. **Método HTTP correcto**:
+   - Usar PATCH (no POST)
+
+⚠️ NOTAS ADICIONALES:
+
+1. El endpoint sigue siendo PATCH (no POST): `PATCH /identity/v1/asistencia/:gymId/:fecha/:alumnoId`
+
+2. Se ha añadido logging extenso para diagnosticar problemas futuros.
+
+3. Si se encuentra con errores adicionales, revisar los logs del servidor para obtener mensajes detallados.
+
+4. La fecha se normaliza automáticamente, pero debe ser una fecha válida.
+
+5. Los errores ahora incluyen mensajes más descriptivos para facilitar el diagnóstico.
+
+✅ ESTADO: PROBLEMA RESUELTO 

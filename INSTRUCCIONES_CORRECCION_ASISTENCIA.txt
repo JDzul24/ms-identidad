@@ -1,0 +1,85 @@
+🔧 SOLUCIÓN ERROR 404 EN ENDPOINT DE ASISTENCIA
+
+📋 PROBLEMA IDENTIFICADO:
+El frontend está intentando usar un endpoint incorrecto para actualizar la asistencia individual:
+
+Error: POST https://api.capbox.site/identity/v1/asistencia/562a7a0c-7f58-4183-888f-ad08664e81ea/2025-07-29/dd1ace33-8d27-4063-8c65-37b3dcff4feb
+
+✅ DOBLE ERROR ENCONTRADO:
+
+1. 🚫 **MÉTODO HTTP INCORRECTO**:
+   - Frontend está usando: POST
+   - Correcto debería ser: PATCH
+
+2. 🚫 **ID DE GIMNASIO INCORRECTO**:
+   - Frontend está usando: 562a7a0c-7f58-4183-888f-ad08664e81ea
+   - Correcto debería ser: e832a42f-4a45-49d8-90e8-1fcb76a166d0
+
+📊 ENDPOINT CORRECTAMENTE IMPLEMENTADO EN BACKEND:
+```typescript
+@Patch(':gymId/:fecha/:alumnoId')  // <-- PATCH, no POST
+@HttpCode(HttpStatus.OK)
+async actualizarAsistenciaIndividual(
+  @Param('gymId') gymId: string,
+  @Param('fecha') fecha: string,
+  @Param('alumnoId') alumnoId: string,
+  @Body() dto: ActualizarAsistenciaDto,
+  @Req() req: RequestConUsuario,
+) {
+  // ... implementación ...
+}
+```
+
+🔍 VALIDACIONES DEL BACKEND:
+1. Verifica que el gimnasio existe
+2. Verifica que el solicitante pertenece al gimnasio (`solicitante.gimnasio.id !== gymId`)
+3. Verifica que el alumno pertenece al gimnasio
+
+🚀 CORRECCIÓN PARA FRONTEND:
+
+1. **Modificar método HTTP**:
+   ```typescript
+   // INCORRECTO ❌
+   await dio.post('/identity/v1/asistencia/${gymId}/${fecha}/${alumnoId}', ...);
+   
+   // CORRECTO ✅
+   await dio.patch('/identity/v1/asistencia/${gymId}/${fecha}/${alumnoId}', ...);
+   ```
+
+2. **Usar ID de gimnasio correcto**:
+   ```typescript
+   // Obtener el ID correcto del gimnasio del entrenador desde la respuesta de /usuarios/me
+   const userInfo = await dio.get('/identity/v1/usuarios/me');
+   const gymId = userInfo.data.gimnasio.id;
+   
+   // Usar el ID correcto en la petición
+   await dio.patch('/identity/v1/asistencia/${gymId}/${fecha}/${alumnoId}', ...);
+   ```
+
+3. **Verificar formato del cuerpo de la petición**:
+   ```typescript
+   // Formato correcto del body
+   const body = {
+     status: 'presente' // o 'falto' o 'permiso'
+   };
+   ```
+
+⚠️ IMPORTANTE:
+- El backend está configurado correctamente
+- No es necesario modificar el backend
+- El error está únicamente en el frontend
+
+✅ FLUJO COMPLETO:
+1. Frontend obtiene información del usuario con `/usuarios/me`
+2. Extrae el ID del gimnasio de la respuesta: `userInfo.data.gimnasio.id`
+3. Usa PATCH (no POST) para actualizar asistencia individual
+4. Envía el status en el body: `{status: 'presente'}`
+
+🔍 LOGS DE DEBUG:
+Si persiste el problema, imprimir en el frontend:
+- ID del gimnasio usado en la petición
+- Respuesta completa del endpoint `/usuarios/me`
+- Estado del error 404 (body completo)
+
+🎯 RESULTADO ESPERADO:
+El endpoint debe responder con 200 OK y un mensaje de éxito. 
