@@ -6,7 +6,7 @@ export class RachaDto {
   record_personal: number;
   dias_consecutivos: {
     fecha: string;
-    status: 'presente' | 'falto' | 'permiso' | null; // Permite null cuando no hay asistencia
+    status: 'presente' | 'falto' | 'permiso'; // Siempre un string válido, nunca null
   }[];
 }
 

@@ -62,16 +62,16 @@ export class ConsultarRachaService {
             fecha,
           );
 
-          // Asegurar que status sea un valor válido o null
-          let status: 'presente' | 'falto' | 'permiso' | null = null;
+          // Asegurar que status sea un valor válido, nunca null
+          let status: 'presente' | 'falto' | 'permiso' = 'falto'; // Por defecto "falto" si no hay asistencia
           if (asistencia && asistencia.status) {
             const validStatuses = ['presente', 'falto', 'permiso'];
-            status = validStatuses.includes(asistencia.status) ? asistencia.status as any : null;
+            status = validStatuses.includes(asistencia.status) ? asistencia.status as any : 'falto';
           }
 
           diasConsecutivos.push({
             fecha: fecha.toISOString().split('T')[0],
-            status: status,
+            status: status, // Siempre será un string válido
           });
         } catch (error) {
           // Calcular la fecha para el error log y datos por defecto
@@ -82,7 +82,7 @@ export class ConsultarRachaService {
           // Añadir entrada con datos por defecto
           diasConsecutivos.push({
             fecha: fechaError.toISOString().split('T')[0],
-            status: null,
+            status: 'falto', // Por defecto "falto" cuando hay error
           });
         }
       }
@@ -157,7 +157,20 @@ export class ConsultarRachaService {
           dia.fecha = fechaDefault.toISOString().split('T')[0];
           this.logger.warn(`dias_consecutivos[${index}].fecha era null, asignando fecha por defecto`);
         }
-        // status puede ser null, eso está permitido
+        
+        // Validar que status nunca sea null - debe ser siempre un string válido
+        if (dia.status === null || dia.status === undefined || dia.status === '') {
+          dia.status = 'falto'; // Por defecto "falto" cuando no hay asistencia registrada
+          this.logger.warn(`dias_consecutivos[${index}].status era null/undefined, asignando "falto"`);
+        }
+        
+        // Validar que status sea uno de los valores permitidos
+        const validStatuses = ['presente', 'falto', 'permiso'];
+        if (!validStatuses.includes(dia.status)) {
+          dia.status = 'falto';
+          this.logger.warn(`dias_consecutivos[${index}].status tenía valor inválido, asignando "falto"`);
+        }
+        
         return dia;
       });
     }
@@ -174,7 +187,7 @@ export class ConsultarRachaService {
       fecha.setDate(fecha.getDate() - i);
       diasConsecutivos.push({
         fecha: fecha.toISOString().split('T')[0], // Asegurar string válido
-        status: null, // null es permitido para status
+        status: 'falto', // Por defecto "falto" cuando no hay asistencia registrada
       });
     }
 

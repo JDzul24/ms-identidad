@@ -1,0 +1,137 @@
+🔧 SOLUCIÓN: STATUS NULL EN DIAS_CONSECUTIVOS - RACHA DE ASISTENCIA
+
+📋 PROBLEMA IDENTIFICADO:
+El campo `status` dentro de `dias_consecutivos` estaba devolviendo `null`, causando error TypeError en el frontend Flutter.
+
+🔍 LOGS DEL ERROR:
+```json
+"dias_consecutivos": [
+  {"fecha": "2025-07-30", "status": "presente"},
+  {"fecha": "2025-07-29", "status": "presente"},
+  {"fecha": "2025-07-28", "status": "presente"},
+  {"fecha": "2025-07-27", "status": null},  // ← PROBLEMA
+  {"fecha": "2025-07-26", "status": null},  // ← PROBLEMA
+  {"fecha": "2025-07-25", "status": null},  // ← PROBLEMA
+  {"fecha": "2025-07-24", "status": null}   // ← PROBLEMA
+]
+```
+
+🎯 LÓGICA DE NEGOCIO DE RACHA:
+Según las reglas de negocio establecidas:
+- **Racha**: Días consecutivos que el boxeador (atleta) ha asistido
+- **"presente"**: Incrementa la racha en 1
+- **"falto"**: Reinicia la racha a 0
+- **"permiso"**: Congela la racha (no cambia el valor, se mantiene)
+- **Sin registro**: Debe considerarse como "falto" (reinicia racha)
+
+✅ SOLUCIÓN IMPLEMENTADA:
+
+1. **Corrección en ConsultarRachaService**:
+   - Cambio de valor por defecto de `null` a `'falto'`
+   - Status siempre será un string válido
+   - Eliminación completa de valores null
+
+2. **Validación robusta en validateResponse()**:
+   - Detección y corrección de status null/undefined
+   - Validación de valores permitidos
+   - Logs de advertencia para diagnóstico
+   - Asignación automática de "falto" como valor por defecto
+
+3. **Actualización del DTO**:
+   - Eliminación de `| null` del tipo status
+   - Garantía de que status siempre será string válido
+
+🔧 CAMBIOS ESPECÍFICOS:
+
+**1. Construcción de dias_consecutivos:**
+```typescript
+// ANTES (problemático):
+let status: 'presente' | 'falto' | 'permiso' | null = null;
+
+// DESPUÉS (corregido):
+let status: 'presente' | 'falto' | 'permiso' = 'falto'; // Por defecto "falto"
+if (asistencia && asistencia.status) {
+  const validStatuses = ['presente', 'falto', 'permiso'];
+  status = validStatuses.includes(asistencia.status) ? asistencia.status as any : 'falto';
+}
+```
+
+**2. Validación en validateResponse():**
+```typescript
+// Validar que status nunca sea null
+if (dia.status === null || dia.status === undefined || dia.status === '') {
+  dia.status = 'falto'; // Por defecto "falto" cuando no hay asistencia registrada
+  this.logger.warn(`dias_consecutivos[${index}].status era null/undefined, asignando "falto"`);
+}
+
+// Validar que status sea uno de los valores permitidos
+const validStatuses = ['presente', 'falto', 'permiso'];
+if (!validStatuses.includes(dia.status)) {
+  dia.status = 'falto';
+  this.logger.warn(`dias_consecutivos[${index}].status tenía valor inválido, asignando "falto"`);
+}
+```
+
+**3. CreateDefaultRacha() corregido:**
+```typescript
+// ANTES:
+status: null, // null es permitido para status
+
+// DESPUÉS:
+status: 'falto', // Por defecto "falto" cuando no hay asistencia registrada
+```
+
+**4. DTO actualizado:**
+```typescript
+// ANTES:
+status: 'presente' | 'falto' | 'permiso' | null;
+
+// DESPUÉS:
+status: 'presente' | 'falto' | 'permiso'; // Siempre un string válido, nunca null
+```
+
+📊 IMPACTO EN LA LÓGICA DE RACHA:
+
+**Comportamiento esperado después de la corrección:**
+- **Días sin registro de asistencia**: `status: "falto"` (reinicia racha a 0)
+- **Días con asistencia presente**: `status: "presente"` (incrementa racha)
+- **Días con permiso**: `status: "permiso"` (congela racha)
+
+**Ejemplo de respuesta corregida:**
+```json
+"dias_consecutivos": [
+  {"fecha": "2025-07-30", "status": "presente"},  // ✅ Incrementa racha
+  {"fecha": "2025-07-29", "status": "presente"},  // ✅ Incrementa racha
+  {"fecha": "2025-07-28", "status": "presente"},  // ✅ Incrementa racha
+  {"fecha": "2025-07-27", "status": "falto"},     // ✅ Reinicia racha (antes era null)
+  {"fecha": "2025-07-26", "status": "falto"},     // ✅ Reinicia racha (antes era null)
+  {"fecha": "2025-07-25", "status": "falto"},     // ✅ Reinicia racha (antes era null)
+  {"fecha": "2025-07-24", "status": "falto"}      // ✅ Reinicia racha (antes era null)
+]
+```
+
+⚠️ LOGS DE DIAGNÓSTICO:
+Se añadieron logs específicos para identificar correcciones:
+- `"dias_consecutivos[X].status era null/undefined, asignando falto"`
+- `"dias_consecutivos[X].status tenía valor inválido, asignando falto"`
+
+📱 RESULTADO ESPERADO:
+- ❌ **Eliminado** error: `TypeError: null: type 'Null' is not a subtype of type 'String'`
+- ✅ **Garantizado** que todos los status son strings válidos
+- ✅ **Corregida** lógica de racha según reglas de negocio
+- ✅ **Mejorada** experiencia de usuario en frontend
+
+🎯 VALIDACIÓN:
+Para probar la corrección:
+1. Consultar racha de un usuario: `GET /usuarios/{userId}/racha`
+2. Verificar que ningún `status` en `dias_consecutivos` sea null
+3. Confirmar que todos los status son: "presente", "falto", o "permiso"
+4. Validar que el frontend procesa correctamente los datos
+
+✅ ESTADO: PROBLEMA COMPLETAMENTE RESUELTO
+
+🔄 IMPACTO EN RACHA:
+La racha ahora se calculará correctamente:
+- Días sin asistencia se consideran "falto" (reinician racha)
+- La lógica de negocio se respeta completamente
+- Frontend recibe datos consistentes y válidos
