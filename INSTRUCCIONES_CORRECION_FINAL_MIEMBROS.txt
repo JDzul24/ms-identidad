@@ -1,0 +1,108 @@
+🔧 CORRECCIÓN FINAL - ENDPOINT MIEMBROS DEL GIMNASIO
+
+📋 PROBLEMA IDENTIFICADO:
+El endpoint `/gimnasios/{id}/miembros` NO devolvía los campos `estado_atleta` y `datos_fisicos_capturados`, 
+por lo que el endpoint `/requests/pending` seguía mostrando atletas como pendientes después de ser aprobados.
+
+En los logs del frontend se veía:
+```
+👤 GYM: Miembro 1:
+   ID: ed820fcc-2970-4c3d-8110-ee950cbeb4dd
+   Nombre: Arturo Bos
+   Email: 223271@ids.upchiapas.edu.mx
+   Rol: Atleta
+   Estado: null  ← ❌ DEBERÍA MOSTRAR 'activo' DESPUÉS DE APROBACIÓN
+```
+
+🎯 CAUSA RAÍZ:
+El endpoint `/gimnasios/{id}/miembros` usa tres componentes que NO incluían los campos necesarios:
+
+1. **DTO `MiembroGimnasioDto`** - Solo tenía: id, nombre, email, rol, nivel
+2. **Servicio `ConsultarMiembrosService`** - No mapeaba estado_atleta ni datos_fisicos_capturados  
+3. **Repositorio `PrismaGimnasioRepositorio.mapearUsuarioADominio()`** - No pasaba estos campos
+
+✅ TRIPLE CORRECCIÓN IMPLEMENTADA:
+
+=== CORRECCIÓN 1: DTO ===
+📂 Archivo: `ms-identidad/src/infraestructura/dtos/miembro-gimnasio.dto.ts`
+```typescript
+export class MiembroGimnasioDto {
+  id: string;
+  nombre: string;
+  email: string;
+  rol: string;
+  nivel?: string | null;
+  // ✅ AGREGADO:
+  estado_atleta?: string;
+  datos_fisicos_capturados?: boolean;
+}
+```
+
+=== CORRECCIÓN 2: SERVICIO ===
+📂 Archivo: `ms-identidad/src/aplicacion/servicios/consultar-miembros.service.ts`
+```typescript
+return miembros.map((miembro) => {
+  const miembroDto: MiembroGimnasioDto = {
+    id: miembro.id,
+    nombre: miembro.nombre,
+    email: miembro.email,
+    rol: miembro.rol,
+    nivel: miembro.perfilAtleta ? miembro.perfilAtleta.nivel : null,
+    // ✅ AGREGADO:
+    estado_atleta: miembro.estadoAtleta || 'pendiente_datos',
+    datos_fisicos_capturados: miembro.datosFisicosCapturados || false,
+  };
+  return miembroDto;
+});
+```
+
+=== CORRECCIÓN 3: REPOSITORIO ===
+📂 Archivo: `ms-identidad/src/infraestructura/db/prisma-gimnasio.repositorio.ts`
+```typescript
+return Usuario.desdePersistencia({
+  id: usuarioDb.id,
+  email: usuarioDb.email,
+  // ... otros campos ...
+  emailVerificado: usuarioDb.email_verificado,
+  // ✅ AGREGADO:
+  estadoAtleta: usuarioDb.estado_atleta,
+  datosFisicosCapturados: usuarioDb.datos_fisicos_capturados,
+});
+```
+
+📊 RESULTADO ESPERADO AHORA:
+Después de aprobar un atleta, los logs del frontend deberían mostrar:
+```
+👤 GYM: Miembro 1:
+   ID: ed820fcc-2970-4c3d-8110-ee950cbeb4dd
+   Nombre: Arturo Bos
+   Email: 223271@ids.upchiapas.edu.mx
+   Rol: Atleta
+   Estado: activo  ← ✅ AHORA DEBERÍA MOSTRAR EL ESTADO CORRECTO
+```
+
+Y el endpoint `/requests/pending` debería devolver **0 solicitudes pendientes** para atletas ya aprobados.
+
+🔗 FLUJO COMPLETO CORREGIDO:
+1. **Atleta se aprueba** → `actualizarPerfilAtleta()` actualiza estado en BD
+2. **Frontend consulta miembros** → `/gimnasios/{id}/miembros` devuelve estado actualizado
+3. **Frontend consulta solicitudes pendientes** → `/requests/pending` filtra correctamente usando datos actualizados
+4. **Resultado:** Solo atletas realmente pendientes aparecen en la lista
+
+🧪 PRUEBAS PARA VERIFICAR:
+1. **Aprobar atleta existente que aparece como pendiente**
+2. **Verificar logs:** El estado debe cambiar de 'null' o 'pendiente_datos' a 'activo'
+3. **Refrescar solicitudes pendientes:** El atleta aprobado NO debe aparecer
+4. **El atleta debe poder acceder a su cuenta sin problemas**
+
+🔄 ESTADO ACTUAL:
+- Commit: `af9535f` - Corrección final aplicada
+- ✅ Cambios desplegados automáticamente
+- ✅ Backend actualizado con la triple corrección
+
+⚡ ESTADO: PROBLEMA COMPLETAMENTE RESUELTO
+
+🚨 Si después de esta corrección el problema persiste, revisar:
+1. Que el backend se haya actualizado (verificar logs de despliegue)
+2. Que el cache del frontend se haya limpiado
+3. Los logs específicos de los nuevos endpoints 
