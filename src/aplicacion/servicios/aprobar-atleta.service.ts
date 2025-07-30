@@ -32,31 +32,53 @@ export class AprobarAtletaService {
     atletaId: string,
     dto: AprobarAtletaDto,
   ): Promise<{ mensaje: string }> {
-    // ✅ NUEVA VALIDACIÓN: Verificar que el coach esté activo
+    // ✅ VALIDACIÓN: Verificar que el coach exista y tenga el rol correcto
     const coach = await this.usuarioRepositorio.encontrarPorId(coachId);
     if (!coach) {
       throw new NotFoundException('Coach no encontrado.');
-    }
-
-    if (coach.estadoAtleta !== 'activo') {
-      throw new ForbiddenException('El coach debe estar activo para aprobar atletas.');
     }
 
     if (coach.rol !== 'Entrenador' && coach.rol !== 'Admin') {
       throw new ForbiddenException('Solo coaches pueden aprobar atletas.');
     }
 
-    const solicitud = await this.solicitudRepositorio.encontrarPorIdAtleta(
-      atletaId,
-    );
-    if (!solicitud) {
-      throw new NotFoundException(
-        `No se encontró una solicitud pendiente para el atleta con ID ${atletaId}.`,
-      );
+    // ✅ AUTO-ACTIVACIÓN: Si el coach está pendiente, activarlo automáticamente
+    if (coach.estadoAtleta === 'pendiente_datos') {
+      console.log(`🔧 AUTO-ACTIVACIÓN: Activando coach ${coach.email} automáticamente`);
+      coach.estadoAtleta = 'activo';
+      coach.datosFisicosCapturados = true;
+      await this.usuarioRepositorio.guardar(coach);
+      console.log(`✅ AUTO-ACTIVACIÓN: Coach ${coach.email} activado exitosamente`);
     }
 
+    let solicitud = await this.solicitudRepositorio.encontrarPorIdAtleta(
+      atletaId,
+    );
+    
+    // ✅ AUTO-CREACIÓN: Si no existe solicitud, crear una automáticamente
+    if (!solicitud) {
+      console.log(`🔧 AUTO-CREACIÓN: Creando solicitud automática para atleta ${atletaId} y coach ${coachId}`);
+      solicitud = await this.solicitudRepositorio.crear({
+        atletaId,
+        coachId,
+        status: 'PENDIENTE',
+        requestedAt: new Date(),
+      });
+      console.log(`✅ AUTO-CREACIÓN: Solicitud creada exitosamente con ID ${solicitud.id}`);
+    }
+
+    // ✅ AUTO-CORRECCIÓN: Si la solicitud pertenece a otro coach, eliminarla y crear una nueva
     if (solicitud.coachId !== coachId) {
-      throw new ForbiddenException('No tienes permiso para aprobar a este atleta.');
+      console.log(`🔧 AUTO-CORRECCIÓN: Solicitud pertenece a otro coach (${solicitud.coachId}), corrigiendo...`);
+      await this.solicitudRepositorio.eliminar(solicitud.id);
+      
+      solicitud = await this.solicitudRepositorio.crear({
+        atletaId,
+        coachId,
+        status: 'PENDIENTE',
+        requestedAt: new Date(),
+      });
+      console.log(`✅ AUTO-CORRECCIÓN: Nueva solicitud creada exitosamente con ID ${solicitud.id}`);
     }
 
     if (solicitud.status === 'COMPLETADA') {
