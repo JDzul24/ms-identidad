@@ -158,15 +158,15 @@ export class ConsultarRachaService {
           this.logger.warn(`dias_consecutivos[${index}].fecha era null, asignando fecha por defecto`);
         }
         
-        // Validar que status nunca sea null - debe ser siempre un string válido
-        if (dia.status === null || dia.status === undefined || dia.status === '') {
+        // Validar que status nunca sea null/undefined - debe ser siempre un string válido
+        if (dia.status === null || dia.status === undefined) {
           dia.status = 'falto'; // Por defecto "falto" cuando no hay asistencia registrada
           this.logger.warn(`dias_consecutivos[${index}].status era null/undefined, asignando "falto"`);
         }
         
         // Validar que status sea uno de los valores permitidos
-        const validStatuses = ['presente', 'falto', 'permiso'];
-        if (!validStatuses.includes(dia.status)) {
+        const validStatuses = ['presente', 'falto', 'permiso'] as const;
+        if (!validStatuses.includes(dia.status as any)) {
           dia.status = 'falto';
           this.logger.warn(`dias_consecutivos[${index}].status tenía valor inválido, asignando "falto"`);
         }
