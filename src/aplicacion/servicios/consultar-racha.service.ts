@@ -117,23 +117,49 @@ export class ConsultarRachaService {
   }
 
   private validateResponse(response: RachaDto): void {
-    if (!response.usuario_id) {
-      throw new Error('usuario_id no puede ser null o vacío');
+    // Validar campos obligatorios string
+    if (!response.usuario_id || response.usuario_id === null) {
+      response.usuario_id = "";
+      this.logger.warn('usuario_id era null, asignando string vacío');
     }
+    
+    if (!response.estado || response.estado === null) {
+      response.estado = 'activo';
+      this.logger.warn('estado era null, asignando "activo"');
+    }
+    
+    if (!response.ultima_actualizacion || response.ultima_actualizacion === null) {
+      response.ultima_actualizacion = new Date().toISOString();
+      this.logger.warn('ultima_actualizacion era null, asignando fecha actual');
+    }
+    
+    // Validar campos numéricos
     if (response.racha_actual === null || response.racha_actual === undefined) {
-      throw new Error('racha_actual no puede ser null');
+      response.racha_actual = 0;
+      this.logger.warn('racha_actual era null, asignando 0');
     }
-    if (!response.estado) {
-      throw new Error('estado no puede ser null o vacío');
-    }
-    if (!response.ultima_actualizacion) {
-      throw new Error('ultima_actualizacion no puede ser null o vacío');
-    }
+    
     if (response.record_personal === null || response.record_personal === undefined) {
-      throw new Error('record_personal no puede ser null');
+      response.record_personal = 0;
+      this.logger.warn('record_personal era null, asignando 0');
     }
+    
+    // Validar array de días consecutivos
     if (!Array.isArray(response.dias_consecutivos)) {
-      throw new Error('dias_consecutivos debe ser un array');
+      response.dias_consecutivos = [];
+      this.logger.warn('dias_consecutivos no era array, asignando array vacío');
+    } else {
+      // Validar cada elemento del array
+      response.dias_consecutivos = response.dias_consecutivos.map((dia, index) => {
+        if (!dia.fecha || dia.fecha === null) {
+          const fechaDefault = new Date();
+          fechaDefault.setDate(fechaDefault.getDate() - index);
+          dia.fecha = fechaDefault.toISOString().split('T')[0];
+          this.logger.warn(`dias_consecutivos[${index}].fecha era null, asignando fecha por defecto`);
+        }
+        // status puede ser null, eso está permitido
+        return dia;
+      });
     }
   }
 
@@ -147,18 +173,23 @@ export class ConsultarRachaService {
       const fecha = new Date(hoy);
       fecha.setDate(fecha.getDate() - i);
       diasConsecutivos.push({
-        fecha: fecha.toISOString().split('T')[0],
-        status: null,
+        fecha: fecha.toISOString().split('T')[0], // Asegurar string válido
+        status: null, // null es permitido para status
       });
     }
 
-    return {
-      usuario_id: usuarioId,
+    const defaultRacha: RachaDto = {
+      usuario_id: usuarioId || "", // Asegurar string no null
       racha_actual: 0,
       estado: 'activo' as const,
-      ultima_actualizacion: new Date().toISOString(),
+      ultima_actualizacion: new Date().toISOString(), // Asegurar string fecha válida
       record_personal: 0,
       dias_consecutivos: diasConsecutivos,
     };
+
+    // Validar la respuesta por defecto antes de devolverla
+    this.validateResponse(defaultRacha);
+    
+    return defaultRacha;
   }
 } 

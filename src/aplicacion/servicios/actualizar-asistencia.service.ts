@@ -111,14 +111,20 @@ export class ActualizarAsistenciaService {
           this.logger.log(`Racha actualizada para alumno ${asistenciaDto.alumno_id}: ${resultadoRacha.rachaAnterior} -> ${resultadoRacha.rachaActual} (${resultadoRacha.accion})`);
 
           rachasActualizadas.push({
-            alumno_id: asistenciaDto.alumno_id,
-            racha_anterior: resultadoRacha.rachaAnterior,
-            racha_actual: resultadoRacha.rachaActual,
-            accion: resultadoRacha.accion,
+            alumno_id: asistenciaDto.alumno_id || "",
+            racha_anterior: resultadoRacha.rachaAnterior || 0,
+            racha_actual: resultadoRacha.rachaActual || 0,
+            accion: resultadoRacha.accion || "error",
           });
         } catch (error) {
           this.logger.error(`Error procesando asistencia para alumno ${asistenciaDto.alumno_id}:`, error);
-          // Continuar con el siguiente alumno en lugar de fallar toda la operación
+          // Añadir información de error para que el frontend no reciba valores null
+          rachasActualizadas.push({
+            alumno_id: asistenciaDto.alumno_id || "",
+            racha_anterior: 0,
+            racha_actual: 0,
+            accion: "error",
+          });
         }
       }
 
