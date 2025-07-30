@@ -1,0 +1,575 @@
+📋 SISTEMA DE RUTINAS - GUÍA COMPLETA PARA FRONTEND
+==========================================================
+
+🏗️ ARQUITECTURA GENERAL:
+========================
+El sistema de rutinas está distribuido en múltiples microservicios:
+
+- **ms-planificacion**: Creación, consulta y asignación de rutinas
+- **ms-rendimiento**: Registro y consulta de sesiones de entrenamiento
+- **ms-identidad**: Gestión de usuarios y autenticación
+- **capbox-gateway**: Gateway de AWS que enruta las peticiones
+
+🌐 ENDPOINTS BASE:
+==================
+- **Planificación**: https://api.capbox.site/planning/v1/
+- **Rendimiento**: https://api.capbox.site/performance/v1/
+- **Identidad**: https://api.capbox.site/identity/v1/
+
+📝 AUTENTICACIÓN:
+=================
+Todos los endpoints requieren JWT token en el header:
+```
+Authorization: Bearer <jwt_token>
+```
+
+🔧 MS-PLANIFICACION - RUTINAS
+==============================
+
+### 1. CREAR RUTINA
+**Endpoint**: `POST /planning/v1/routines`
+**Permisos**: Solo Entrenadores
+**Body**:
+```json
+{
+  "nombre": "Rutina de Boxeo Principiante",
+  "nivel": "Principiante", // "Principiante", "Intermedio", "Avanzado"
+  "sportId": 1, // ID del deporte (1 = Boxeo)
+  "ejercicios": [
+    {
+      "exerciseId": "uuid-del-ejercicio",
+      "setsReps": "3x12",
+      "duracionEstimadaSegundos": 180
+    }
+  ]
+}
+```
+**Respuesta**:
+```json
+{
+  "id": "uuid-rutina-creada",
+  "nombre": "Rutina de Boxeo Principiante",
+  "nivel": "Principiante",
+  "coachId": "uuid-entrenador",
+  "sportId": 1
+}
+```
+
+### 2. CONSULTAR RUTINAS
+**Endpoint**: `GET /planning/v1/routines`
+**Query Parameters**:
+- `ids`: Lista de UUIDs separados por coma (opcional)
+- `nivel`: Filtrar por nivel (opcional)
+
+**Ejemplos**:
+- `GET /planning/v1/routines` - Todas las rutinas
+- `GET /planning/v1/routines?nivel=Principiante` - Solo principiantes
+- `GET /planning/v1/routines?ids=uuid1,uuid2` - Rutinas específicas
+
+**Respuesta**:
+```json
+[
+  {
+    "id": "uuid-rutina",
+    "nombre": "Rutina de Boxeo",
+    "nivel": "Principiante",
+    "coachId": "uuid-entrenador",
+    "sportId": 1
+  }
+]
+```
+
+### 3. DETALLES DE RUTINA
+**Endpoint**: `GET /planning/v1/routines/:id`
+**Respuesta**:
+```json
+{
+  "id": "uuid-rutina",
+  "nombre": "Rutina Completa",
+  "nivel": "Intermedio",
+  "descripcion": "Descripción detallada",
+  "ejercicios": [
+    {
+      "id": "uuid-ejercicio",
+      "nombre": "Jab Directo",
+      "descripcion": "Golpe directo con la mano adelantada",
+      "setsReps": "3x15",
+      "duracionEstimadaSegundos": 120
+    }
+  ]
+}
+```
+
+### 4. CONSULTAR EJERCICIOS DISPONIBLES
+**Endpoint**: `GET /planning/v1/exercises`
+**Query Parameters**:
+- `sportId`: Filtrar por deporte (opcional)
+
+**Ejemplo**: `GET /planning/v1/exercises?sportId=1`
+**Respuesta**:
+```json
+[
+  {
+    "id": "uuid-ejercicio",
+    "nombre": "Jab",
+    "descripcion": "Golpe directo con mano adelantada"
+  }
+]
+```
+
+🎯 MS-PLANIFICACION - ASIGNACIONES
+==================================
+
+### 5. ASIGNAR RUTINA A ATLETAS
+**Endpoint**: `POST /planning/v1/assignments`
+**Permisos**: Solo Entrenadores
+**Body**:
+```json
+{
+  "rutinaId": "uuid-rutina", // Requerido si no hay metaId
+  "metaId": null, // Para futuras metas/objetivos
+  "atletaIds": [
+    "uuid-atleta-1",
+    "uuid-atleta-2"
+  ]
+}
+```
+**Respuesta**:
+```json
+{
+  "mensaje": "Plan asignado con éxito a 2 atleta(s).",
+  "asignacionesCreadas": 2
+}
+```
+
+### 6. CONSULTAR MIS ASIGNACIONES (ATLETA)
+**Endpoint**: `GET /planning/v1/assignments/me`
+**Permisos**: Solo Atletas
+**Respuesta**:
+```json
+[
+  {
+    "id": "uuid-asignacion",
+    "nombreRutina": "Rutina de Boxeo Avanzado",
+    "nombreEntrenador": "Juan Pérez",
+    "estado": "PENDIENTE", // "PENDIENTE", "EN_PROGRESO", "COMPLETADA"
+    "fechaAsignacion": "2025-01-15T10:30:00.000Z",
+    "rutinaId": "uuid-rutina",
+    "assignerId": "uuid-entrenador"
+  }
+]
+```
+
+🏃‍♂️ MS-RENDIMIENTO - SESIONES
+===============================
+
+### 7. REGISTRAR SESIÓN DE ENTRENAMIENTO
+**Endpoint**: `POST /performance/v1/sessions`
+**Body**:
+```json
+{
+  "atletaId": "uuid-atleta",
+  "routineAssignmentId": "uuid-asignacion", // Opcional, null para entrenamiento libre
+  "startTime": "2025-01-15T10:00:00.000Z",
+  "endTime": "2025-01-15T11:30:00.000Z",
+  "rpeScore": 7, // Escala RPE 1-10 (Rate of Perceived Exertion)
+  "metricas": [
+    {
+      "tipo": "frecuencia_cardiaca_max",
+      "valor": "180",
+      "unidad": "bpm"
+    },
+    {
+      "tipo": "calorias_quemadas",
+      "valor": "450",
+      "unidad": "kcal"
+    }
+  ]
+}
+```
+**Respuesta**:
+```json
+{
+  "statusCode": 201,
+  "message": "Sesión de entrenamiento registrada con éxito.",
+  "data": {
+    "id": "uuid-sesion-creada"
+  }
+}
+```
+
+### 8. HISTORIAL DE SESIONES (ATLETA)
+**Endpoint**: `GET /performance/v1/sessions/me`
+**Permisos**: Atletas (ve su propio historial)
+**Respuesta**:
+```json
+[
+  {
+    "id": "uuid-sesion",
+    "fechaInicio": "2025-01-15T10:00:00.000Z",
+    "duracionMinutos": 90,
+    "nombrePlan": "Rutina de Boxeo Avanzado", // "Entrenamiento Libre" si no hay rutina
+    "rpe": 7
+  }
+]
+```
+
+### 9. HISTORIAL DE SESIONES DE ATLETA (ENTRENADOR)
+**Endpoint**: `GET /performance/v1/sessions/athlete/:atletaId`
+**Permisos**: Solo Entrenadores
+**Respuesta**: Mismo formato que el endpoint anterior
+
+### 10. HEALTH CHECK RENDIMIENTO
+**Endpoint**: `GET /performance/v1/sessions`
+**Sin autenticación**
+**Respuesta**:
+```json
+{
+  "statusCode": 200,
+  "message": "Servicio de rendimiento disponible",
+  "service": "ms-rendimiento",
+  "version": "1.3.0",
+  "endpoints": {
+    "createSession": "POST /sessions",
+    "myHistory": "GET /sessions/me",
+    "athleteHistory": "GET /sessions/athlete/:id"
+  }
+}
+```
+
+🔧 MS-PLANIFICACION - GESTIÓN AVANZADA
+======================================
+
+### 11. ACTUALIZAR RUTINA
+**Endpoint**: `PUT /planning/v1/routines/:id`
+**Permisos**: Solo Entrenadores (propietarios de la rutina)
+**Body**:
+```json
+{
+  "nombre": "Rutina Actualizada",
+  "nivel": "Avanzado",
+  "descripcion": "Nueva descripción",
+  "ejercicios": [
+    {
+      "exerciseId": "uuid-del-ejercicio",
+      "setsReps": "4x10",
+      "duracionEstimadaSegundos": 240
+    }
+  ]
+}
+```
+**Respuesta**: Rutina actualizada con detalles completos
+
+### 12. ELIMINAR RUTINA
+**Endpoint**: `DELETE /planning/v1/routines/:id`
+**Permisos**: Solo Entrenadores (propietarios de la rutina)
+**Respuesta**:
+```json
+{
+  "mensaje": "Rutina eliminada exitosamente."
+}
+```
+
+### 13. CANCELAR ASIGNACIÓN
+**Endpoint**: `DELETE /planning/v1/assignments/:id`
+**Permisos**: Solo Entrenadores (que crearon la asignación)
+**Respuesta**:
+```json
+{
+  "mensaje": "Asignación eliminada exitosamente."
+}
+```
+
+### 14. ACTUALIZAR ESTADO DE ASIGNACIÓN
+**Endpoint**: `PATCH /planning/v1/assignments/:id`
+**Permisos**: Atletas (sus propias asignaciones) y Entrenadores (asignaciones que crearon)
+**Body**:
+```json
+{
+  "estado": "EN_PROGRESO"
+}
+```
+**Estados válidos**: `"PENDIENTE"`, `"EN_PROGRESO"`, `"COMPLETADA"`
+**Respuesta**:
+```json
+{
+  "id": "uuid-asignacion",
+  "estado": "EN_PROGRESO",
+  "mensaje": "Estado de asignación actualizado a EN_PROGRESO."
+}
+```
+
+🏃‍♂️ MS-PLANIFICACION - DEPORTES (CRUD COMPLETO)
+=================================================
+
+### 15. CONSULTAR DEPORTES
+**Endpoint**: `GET /planning/v1/sports`
+**Permisos**: Todos los usuarios autenticados
+**Respuesta**:
+```json
+[
+  {
+    "id": 1,
+    "nombre": "Boxeo",
+    "descripcion": "Deporte de combate con puños"
+  }
+]
+```
+
+### 16. CREAR DEPORTE
+**Endpoint**: `POST /planning/v1/sports`
+**Permisos**: Solo Administradores
+**Body**:
+```json
+{
+  "nombre": "Muay Thai",
+  "descripcion": "Arte marcial tailandés"
+}
+```
+
+### 17. ACTUALIZAR DEPORTE
+**Endpoint**: `PUT /planning/v1/sports/:id`
+**Permisos**: Solo Administradores
+**Body**:
+```json
+{
+  "nombre": "Kickboxing",
+  "descripcion": "Descripción actualizada"
+}
+```
+
+### 18. ELIMINAR DEPORTE
+**Endpoint**: `DELETE /planning/v1/sports/:id`
+**Permisos**: Solo Administradores
+**Respuesta**:
+```json
+{
+  "mensaje": "Deporte eliminado exitosamente."
+}
+```
+
+🎯 MS-PLANIFICACION - METAS/OBJETIVOS (SISTEMA COMPLETO)
+========================================================
+
+### 19. CONSULTAR METAS
+**Endpoint**: `GET /planning/v1/goals`
+**Permisos**: Solo Entrenadores (ven sus propias metas)
+**Respuesta**:
+```json
+[
+  {
+    "id": "uuid-meta",
+    "descripcion": "Mejorar técnica de jab en 30 días",
+    "fechaLimite": "2025-02-15T00:00:00.000Z",
+    "createdAt": "2025-01-15T10:30:00.000Z"
+  }
+]
+```
+
+### 20. CREAR META
+**Endpoint**: `POST /planning/v1/goals`
+**Permisos**: Solo Entrenadores
+**Body**:
+```json
+{
+  "descripcion": "Aumentar resistencia cardiovascular",
+  "fechaLimite": "2025-03-01T00:00:00.000Z"
+}
+```
+
+### 21. ACTUALIZAR META
+**Endpoint**: `PUT /planning/v1/goals/:id`
+**Permisos**: Solo Entrenadores (propietarios de la meta)
+**Body**:
+```json
+{
+  "descripcion": "Meta actualizada",
+  "fechaLimite": "2025-04-01T00:00:00.000Z"
+}
+```
+
+### 22. ELIMINAR META
+**Endpoint**: `DELETE /planning/v1/goals/:id`
+**Permisos**: Solo Entrenadores (propietarios de la meta)
+**Respuesta**:
+```json
+{
+  "mensaje": "Meta eliminada exitosamente."
+}
+```
+
+### 23. ASIGNAR META A ATLETAS
+**Endpoint**: `POST /planning/v1/assignments`
+**Permisos**: Solo Entrenadores
+**Body**:
+```json
+{
+  "metaId": "uuid-meta",
+  "rutinaId": null,
+  "atletaIds": [
+    "uuid-atleta-1",
+    "uuid-atleta-2"
+  ]
+}
+```
+
+📊 ESTADOS Y FLUJOS
+===================
+
+### Estados de Asignación:
+- **PENDIENTE**: Recién asignada, el atleta aún no la ha iniciado
+- **EN_PROGRESO**: El atleta ha comenzado a trabajar en la rutina
+- **COMPLETADA**: El atleta ha terminado la rutina
+
+### Flujo Típico:
+1. **Entrenador** crea una rutina usando `POST /planning/v1/routines`
+2. **Entrenador** asigna la rutina a atletas usando `POST /planning/v1/assignments`
+3. **Atleta** consulta sus asignaciones con `GET /planning/v1/assignments/me`
+4. **Atleta** ve detalles de la rutina con `GET /planning/v1/routines/:id`
+5. **Atleta** registra sesiones de entrenamiento con `POST /performance/v1/sessions`
+6. **Entrenador** puede ver el progreso del atleta con `GET /performance/v1/sessions/athlete/:id`
+
+🔍 MODELOS DE DATOS
+===================
+
+### Rutina:
+```typescript
+interface Rutina {
+  id: string;
+  nombre: string;
+  nivel: "Principiante" | "Intermedio" | "Avanzado";
+  coachId: string;
+  sportId: number;
+  descripcion?: string;
+  ejercicios: Ejercicio[];
+}
+```
+
+### Ejercicio:
+```typescript
+interface Ejercicio {
+  id: string;
+  nombre: string;
+  descripcion?: string;
+  setsReps?: string; // "3x12", "5x5", etc.
+  duracionEstimadaSegundos?: number;
+}
+```
+
+### Asignación:
+```typescript
+interface Asignacion {
+  id: string;
+  atletaId: string;
+  assignerId: string;
+  rutinaId?: string;
+  metaId?: string;
+  status: "PENDIENTE" | "EN_PROGRESO" | "COMPLETADA";
+  assignedAt: Date;
+}
+```
+
+### Sesión de Entrenamiento:
+```typescript
+interface SesionEntrenamiento {
+  id: string;
+  atletaId: string;
+  routineAssignmentId?: string; // null para entrenamiento libre
+  startTime: Date;
+  endTime?: Date;
+  rpeScore?: number; // 1-10
+  metricas: MetricaRendimiento[];
+}
+
+interface MetricaRendimiento {
+  tipo: string; // "frecuencia_cardiaca_max", "calorias_quemadas", etc.
+  valor: string;
+  unidad: string; // "bpm", "kcal", "kg", etc.
+}
+```
+
+✅ SISTEMA COMPLETAMENTE FUNCIONAL
+==================================
+
+### Todas las Funcionalidades Implementadas:
+- ✅ **CRUD completo de rutinas**: Crear, leer, actualizar y eliminar
+- ✅ **Gestión completa de asignaciones**: Crear, consultar, actualizar estado y cancelar
+- ✅ **CRUD completo de deportes**: Gestión administrativa completa
+- ✅ **Sistema completo de metas/objetivos**: Crear, consultar, actualizar, eliminar y asignar
+- ✅ **Validaciones robustas**: Permisos por rol y verificación de propietario
+- ✅ **Integridad referencial**: Eliminación en cascada y transacciones
+
+### Consideraciones Técnicas:
+- Los microservicios usan Prisma como ORM
+- La base de datos es PostgreSQL compartida entre microservicios
+- Todos los IDs son UUIDs v4 (excepto deportes que usan enteros)
+- Las fechas están en formato ISO 8601
+- Transacciones de base de datos para operaciones complejas
+- Validación de permisos en todos los endpoints
+- Manejo de errores específicos (404, 403, 409, 422)
+
+🚀 RECOMENDACIONES PARA EL FRONTEND
+===================================
+
+### 1. Manejo de Estados:
+```dart
+enum EstadoAsignacion { PENDIENTE, EN_PROGRESO, COMPLETADA }
+```
+
+### 2. Caché Local:
+- Cachear rutinas y ejercicios para evitar peticiones repetidas
+- Sincronizar asignaciones periódicamente
+
+### 3. Validaciones:
+- Validar que `startTime < endTime` en sesiones
+- Validar que RPE esté entre 1-10
+- Validar UUIDs v4 antes de enviar
+
+### 4. Manejo de Errores:
+- 401: Token expirado o inválido
+- 403: Sin permisos para la acción
+- 404: Recurso no encontrado
+- 422: Datos de entrada inválidos
+
+### 5. Optimizaciones:
+- Usar paginación si es necesario (aunque no está implementada)
+- Implementar pull-to-refresh en listas
+- Mostrar indicadores de carga durante peticiones de red
+
+📞 ENDPOINTS DE PRUEBA
+======================
+
+### Health Checks:
+- `GET /planning/v1/routines` (con auth)
+- `GET /performance/v1/sessions` (sin auth)
+
+### Datos de Prueba:
+- sportId: 1 (Boxeo configurado por defecto, más deportes disponibles vía API)
+- Niveles válidos: "Principiante", "Intermedio", "Avanzado"
+- Estados de asignación: "PENDIENTE", "EN_PROGRESO", "COMPLETADA"
+- Roles con permisos especiales: "Admin" (deportes), "Entrenador" (rutinas/metas), "Atleta" (asignaciones propias)
+
+🔧 CONFIGURACIÓN DE DESARROLLO
+==============================
+
+### URLs Base:
+- **Producción**: https://api.capbox.site/
+- **Gateway**: capbox-gateway maneja el enrutamiento
+- **Prefijos**: Todos los microservicios usan `/v1/` como prefijo
+
+### Puertos Locales (si necesario):
+- ms-planificacion: 3000
+- ms-rendimiento: 3000 (diferente instancia)
+- ms-identidad: 3000 (diferente instancia)
+
+## 🎉 SISTEMA COMPLETO Y FUNCIONAL
+
+Esta guía cubre **TODO** el sistema de rutinas completamente implementado. **NO HAY LIMITACIONES** - todas las funcionalidades están disponibles:
+
+✅ **23 Endpoints Implementados**
+✅ **CRUD Completo para Rutinas, Deportes y Metas**
+✅ **Gestión Avanzada de Asignaciones**
+✅ **Validaciones y Permisos Robustos**
+✅ **Integridad Referencial Garantizada**
+
+**¡El backend está listo para producción!** 🚀
