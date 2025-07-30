@@ -29,11 +29,23 @@ export class ConsultarSolicitudesPendientesService {
     const miembros = await this.gimnasioRepositorio.obtenerMiembros(gimnasioSolicitante.id);
 
     // 4. Filtrar solo atletas pendientes de datos
+    console.log(`🔍 SOLICITUDES: Evaluando ${miembros.length} miembros del gimnasio ${gimnasioSolicitante.id}`);
+    
     const atletasPendientes = miembros
-      .filter((miembro) => 
-        miembro.rol === 'Atleta' && 
-        (miembro.estadoAtleta === 'pendiente_datos' || !miembro.datosFisicosCapturados)
-      )
+      .filter((miembro) => {
+        const esAtleta = miembro.rol === 'Atleta';
+        const estadoPendiente = (miembro.estadoAtleta === 'pendiente_datos' || miembro.estadoAtleta === null);
+        const datosSinCapturar = !miembro.datosFisicosCapturados;
+        
+        const esPendiente = esAtleta && estadoPendiente && datosSinCapturar;
+        
+        if (esAtleta) {
+          console.log(`👤 ATLETA: ${miembro.nombre} (${miembro.email})`);
+          console.log(`   Estado: ${miembro.estadoAtleta || 'null'} | Datos capturados: ${miembro.datosFisicosCapturados || 'false'} | Es pendiente: ${esPendiente}`);
+        }
+        
+        return esPendiente;
+      })
       .map((atleta) => ({
         id: atleta.id,
         name: atleta.nombre,
@@ -47,6 +59,8 @@ export class ConsultarSolicitudesPendientesService {
           nombre: atleta.gimnasio.nombre,
         } : null,
       }));
+
+    console.log(`✅ SOLICITUDES: ${atletasPendientes.length} atletas pendientes encontrados`);
 
     return atletasPendientes;
   }
