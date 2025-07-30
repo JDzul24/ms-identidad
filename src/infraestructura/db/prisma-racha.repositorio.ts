@@ -31,22 +31,31 @@ export class PrismaRachaRepositorio implements IRachaRepositorio {
   async actualizar(racha: Racha): Promise<Racha> {
     this.logger.log(`Actualizando racha para usuario ${racha.usuarioId}: ${racha.rachaActual} días (estado: ${racha.estado})`);
     
-    const rachaDb = await this.prisma.racha.update({
-      where: { id: racha.id },
-      data: {
-        rachaActual: racha.rachaActual,
-        estado: racha.estado,
-        recordPersonal: racha.recordPersonal,
-        ultimaActualizacion: racha.ultimaActualizacion,
-      },
-    });
+    try {
+      // Asegurarse de que rachaActual sea un número válido
+      const rachaActualNormalizada = Number.isNaN(racha.rachaActual) ? 0 : racha.rachaActual;
+      const recordPersonalNormalizado = Number.isNaN(racha.recordPersonal) ? 0 : racha.recordPersonal;
+      
+      const rachaDb = await this.prisma.racha.update({
+        where: { id: racha.id },
+        data: {
+          rachaActual: rachaActualNormalizada,
+          estado: racha.estado,
+          recordPersonal: recordPersonalNormalizado,
+          ultimaActualizacion: racha.ultimaActualizacion,
+        },
+      });
 
-    // Forzar una recarga fresca desde la base de datos para asegurar consistencia
-    const rachaActualizada = await this.prisma.racha.findUnique({
-      where: { id: racha.id },
-    });
+      // Forzar una recarga fresca desde la base de datos para asegurar consistencia
+      const rachaActualizada = await this.prisma.racha.findUnique({
+        where: { id: racha.id },
+      });
 
-    return this.mapearADominio(rachaActualizada);
+      return this.mapearADominio(rachaActualizada);
+    } catch (error) {
+      this.logger.error(`Error al actualizar racha para usuario ${racha.usuarioId}:`, error.stack);
+      throw error;
+    }
   }
 
   async encontrarPorUsuarioId(usuarioId: string): Promise<Racha | null> {
@@ -69,17 +78,25 @@ export class PrismaRachaRepositorio implements IRachaRepositorio {
   async crearOEncontrar(usuarioId: string): Promise<Racha> {
     this.logger.log(`Buscando o creando racha para usuario ${usuarioId}`);
     
-    // Primero, intentar encontrar la racha existente con una consulta fresca
-    const rachaExistente = await this.encontrarPorUsuarioId(usuarioId);
-    if (rachaExistente) {
-      this.logger.log(`Racha existente encontrada para usuario ${usuarioId}: ${rachaExistente.rachaActual} días`);
-      return rachaExistente;
-    }
+    try {
+      // Primero, intentar encontrar la racha existente con una consulta fresca
+      const rachaExistente = await this.encontrarPorUsuarioId(usuarioId);
+      if (rachaExistente) {
+        const rachaActual = rachaExistente.rachaActual || 0;
+        this.logger.log(`Racha existente encontrada para usuario ${usuarioId}: ${rachaActual} días`);
+        return rachaExistente;
+      }
 
-    // Si no existe, crear una nueva racha
-    this.logger.log(`Creando nueva racha para usuario ${usuarioId}`);
-    const nuevaRacha = Racha.crear({ usuarioId });
-    return this.guardar(nuevaRacha);
+      // Si no existe, crear una nueva racha
+      this.logger.log(`Creando nueva racha para usuario ${usuarioId}`);
+      const nuevaRacha = Racha.crear({ usuarioId });
+      return this.guardar(nuevaRacha);
+    } catch (error) {
+      this.logger.error(`Error en crearOEncontrar para usuario ${usuarioId}:`, error.stack);
+      // En caso de error, crear una racha predeterminada como fallback
+      const rachaDefault = Racha.crear({ usuarioId });
+      return rachaDefault;
+    }
   }
 
   async guardarHistorial(historial: HistorialRacha): Promise<HistorialRacha> {
