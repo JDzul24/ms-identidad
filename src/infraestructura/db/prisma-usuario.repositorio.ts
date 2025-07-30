@@ -99,6 +99,7 @@ export class PrismaUsuarioRepositorio implements IUsuarioRepositorio {
     atletaId: string,
     datos: PerfilAtletaActualizable,
   ): Promise<void> {
+    // 1. Actualizar los datos físicos del atleta
     await this.prisma.athlete.upsert({
       where: { userId: atletaId },
       update: {
@@ -121,6 +122,18 @@ export class PrismaUsuarioRepositorio implements IUsuarioRepositorio {
         emergency_contact_phone: datos.contactoEmergenciaTelefono,
       },
     });
+
+    // 2. ✅ FIX: Actualizar el estado del usuario para que se marque como activo
+    await this.prisma.user.update({
+      where: { id: atletaId },
+      data: {
+        estado_atleta: 'activo',
+        datos_fisicos_capturados: true,
+        fecha_aprobacion: new Date(),
+      },
+    });
+
+    console.log(`✅ ESTADO: Atleta ${atletaId} marcado como activo con datos físicos capturados`);
   }
 
   public async actualizarRefreshToken(
