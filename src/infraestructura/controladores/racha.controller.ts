@@ -48,10 +48,10 @@ export class RachaController {
   ): Promise<HistorialRachaDto> {
     const { userId: solicitanteId } = req.user;
 
-    // Por ahora, devolvemos un historial básico
-    // TODO: Implementar servicio completo de historial
+    // Devolver historial básico con valores por defecto válidos
+    // TODO: Implementar servicio completo de historial cuando sea necesario
     return {
-      usuario_id: userId,
+      usuario_id: userId || "",
       record_personal: 0,
       racha_actual: 0,
       rachas_anteriores: [],
